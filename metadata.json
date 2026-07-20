@@ -1,0 +1,6 @@
+{
+  "name": "Christ Army Official",
+  "description": "La plateforme officielle du ministère Christ Army. Découvrez notre vision, suivez nos enseignements, participez à nos événements, rejoignez nos départements et soutenez le ministère.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

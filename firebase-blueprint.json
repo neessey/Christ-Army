@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "Enrolement": {
+      "title": "Enrolement",
+      "description": "Enrôlement / Adhésion d'un membre au mouvement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "country": { "type": "string" },
+        "city": { "type": "string" },
+        "church": { "type": "string" },
+        "profession": { "type": "string" },
+        "availability": { "type": "string" },
+        "motivation": { "type": "string" },
+        "serviceDomain": { "type": "string" },
+        "dateJoined": { "type": "string" }
+      },
+      "required": ["id", "name", "phone", "email", "country", "serviceDomain", "dateJoined"]
+    },
+    "DeptInscription": {
+      "title": "DeptInscription",
+      "description": "Candidature pour rejoindre un département d'impact",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "country": { "type": "string" },
+        "motivation": { "type": "string" },
+        "availability": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "dateJoined": { "type": "string" }
+      },
+      "required": ["id", "name", "phone", "email", "country", "departmentId", "dateJoined"]
+    },
+    "EventInscription": {
+      "title": "EventInscription",
+      "description": "Inscription d'un utilisateur à un événement du ministère",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "eventId": { "type": "string" },
+        "eventTitle": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "dateRegistered": { "type": "string" }
+      },
+      "required": ["id", "eventId", "eventTitle", "userEmail", "userName", "dateRegistered"]
+    }
+  },
+  "firestore": {
+    "enrolements/{enrolementId}": {
+      "schema": "Enrolement",
+      "description": "Tous les enrôlements de membres du mouvement"
+    },
+    "inscriptions_departements/{inscriptionId}": {
+      "schema": "DeptInscription",
+      "description": "Inscriptions aux différents départements du ministère"
+    },
+    "inscriptions_evenements/{inscriptionId}": {
+      "schema": "EventInscription",
+      "description": "Inscriptions aux événements du ministère"
+    }
+  }
+}
