@@ -529,7 +529,7 @@ export default function AdminDashboard({
                       </div>
                       <h4 className="font-cinzel text-xl font-bold text-pristine-white">Événement Programmé !</h4>
                       <p className="text-xs text-neutral-gray max-w-xs">
-                        Le grand rassemblement a bien été créé. Les fidèles peuvent s'y inscrire immédiatement et générer des codes QR.
+                        Le grand programme a bien été créé. Les invités peuvent s'y inscrire immédiatement.
                       </p>
                     </div>
                   ) : (

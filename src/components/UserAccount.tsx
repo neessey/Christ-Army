@@ -238,7 +238,7 @@ export default function UserAccount({ user }: UserAccountProps) {
                       <div className="flex items-center gap-2 justify-center sm:justify-start">
                         <h3 className="font-cinzel text-xl font-bold text-pristine-white">{user.name}</h3>
                         <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-gold-rich/10 text-gold-bright border border-gold-rich/20 uppercase">
-                          {user.role === 'admin' ? 'ADMINISTRATEUR' : 'FIDÈLE CADET'}
+                          {user.role === 'admin' ? 'ADMINISTRATEUR' : 'CHRISTWALKER'}
                         </span>
                       </div>
                       <p className="text-xs text-neutral-gray font-mono mt-0.5">{user.email}</p>
@@ -310,7 +310,7 @@ export default function UserAccount({ user }: UserAccountProps) {
                             Rôle & Engagement
                           </span>
                           <p className="text-xs text-neutral-gray leading-relaxed font-light">
-                            Vous êtes actuellement enregistré au registre officiel des fidèles de Christ Army. Ce profil vous permet de conserver vos favoris d'enseignements pastoraux, vos agendas et reçus de contribution financière.
+                            Vous êtes actuellement enregistré au registre officiel des ChristWalkers. Ce profil vous permet de conserver vos favoris d'enseignements pastoraux, vos agendas et reçus de contribution financière.
                           </p>
                         </div>
                         <div className="p-5 rounded-xl bg-deep-green/60 border border-gold-rich/10 flex flex-col justify-between">

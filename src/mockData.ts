@@ -5,7 +5,7 @@ export const DEPARTMENTS_DATA: Department[] = [
     id: 'accueil',
     name: 'Accueil',
     iconName: 'Shield',
-    description: 'Recevoir les fidèles avec amour et veiller à la sécurité et la bienséance des cultes.',
+    description: 'Recevoir les invités avec amour et veiller à la sécurité et la bienséance des cultes.',
     longDescription: 'Inspiré par le cœur du serviteur, le département d\'Accueil veille à ce que chaque personne franchissant les portes de Christ Army se sente honorée, aimée et en sécurité. Ils orientent la foule, s\'occupent des invités. C\'est le visage de Christ Army, le premier contact. ',
     verse: '« Accueillez-vous donc les uns les autres, comme Christ vous a accueillis... » — Romains 15:7',
     headOfDepartment: 'Rama Christwalker ',
@@ -16,7 +16,7 @@ export const DEPARTMENTS_DATA: Department[] = [
       'Avoir le sens de l\'observation et de la vigilance'
     ],
     responsibilities: [
-      'Accueillir et guider les fidèles vers leurs places respectives',
+      'Accueillir et guider les invités vers leurs places respectives',
       'Assister les personnes qui viennent pour la première fois',
       'S\'occuper des offrandes et collecter les dons'
     ],

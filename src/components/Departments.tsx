@@ -201,7 +201,7 @@ export default function Departments({ onJoinDepartment, joinedDepartmentIds }: D
                       onClick={() => setShowJoinModal(true)}
                       className="w-full py-4 rounded-lg bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold uppercase text-sm tracking-wider hover:shadow-lg transition-all duration-300"
                     >
-                      Postuler & Rejoindre ce Département
+                       Rejoindre ce Département
                     </button>
                   )}
                 </div>
