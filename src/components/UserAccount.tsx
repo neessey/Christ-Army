@@ -234,14 +234,6 @@ export default function UserAccount({ user }: UserAccountProps) {
                 {/* Workspace header profile */}
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-6 border-b border-gold-rich/10 pb-6 mb-8">
                   <div className="flex items-center gap-4 text-center sm:text-left">
-                    <div className="w-16 h-16 rounded-full border-2 border-gold-rich bg-primary-green/20 overflow-hidden flex items-center justify-center">
-                      <img
-                        src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.name}`}
-                        alt="Avatar"
-                        className="w-14 h-14"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
                     <div>
                       <div className="flex items-center gap-2 justify-center sm:justify-start">
                         <h3 className="font-cinzel text-xl font-bold text-pristine-white">{user.name}</h3>

@@ -20,7 +20,7 @@ export const DEPARTMENTS_DATA: Department[] = [
       'Assister les personnes qui viennent pour la première fois',
       'S\'occuper des offrandes et collecter les dons'
     ],
-    image: '/assets/accueil.jpeg'
+    image: '/assets/intercession.jpeg'
   },
   {
     id: 'intercession',
@@ -64,7 +64,7 @@ export const DEPARTMENTS_DATA: Department[] = [
 "Coordonner les équipes afin d'assurer une organisation fluide et efficace.",
 "Contribuer au maintien de l'ordre pendant le service.",
     ],
-    image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800'
+    image: '/assets/intercession.jpeg'
   },
   {
     id: 'chantre',
@@ -86,7 +86,7 @@ export const DEPARTMENTS_DATA: Department[] = [
 "Servir avec excellence, dans un esprit d'unité et de soumission.",
 "Utiliser les talents reçus pour glorifier Dieu et accompagner la vision de Christ Army."
     ],
-    image: '/assets/chantre.png'
+    image: '/assets/intercession.jpeg'
   },
   {
     id: 'communication',
@@ -108,7 +108,7 @@ export const DEPARTMENTS_DATA: Department[] = [
 "Produire et diffuser des contenus qui valorisent la vision de Christ Army.",
 "Veiller à l'unité, à la qualité et à la cohérence de la communication sur tous les supports."
     ],
-    image: '/assets/com.jpeg'
+    image: '/assets/intercession.jpeg'
   },
   {
     id: 'commando',
@@ -130,7 +130,7 @@ export const DEPARTMENTS_DATA: Department[] = [
 "Intervenir avec discrétion afin de préserver le bon déroulement des temps de prière.",
 "Servir avec sensibilité, vigilance et dans le respect des directives du ministère."
     ],
-    image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=800'
+    image: '/assets/intercession.jpeg'
   },
 ];
 
@@ -155,22 +155,22 @@ export const TEACHINGS_DATA: Teaching[] = [
 export const EVENTS_DATA: Event[] = [
   {
     id: 'ev-1',
-    title: 'La Grande Nuit de la Gloire & Délivrance',
-    date: '11-07-2026',
-    time: '14h00 - 17h00',
+    title: 'AUTEL, AUTEL AINSI  DIT L\'ETERNEL',
+    date: '18-07-2026',
+    time: '14h00 - 17h30',
     location: 'Espace Arche, Angré Mahou',
     speaker: 'Prophète Kader Josué Fadika',
-    imageUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=800',
-    description: 'Le grand rendez-vous de l\'année. Une nuit entière dans la présence de Dieu avec prédication incisive, louange prophétique d\'impact, et libération d\'onction de guérison et miracles de masse. Venez vivre une visitation divine sans précédent.',
+    imageUrl: '/assets/event.png',
+    description: 'Le grand rendez-vous du mois de juillet. Une journée dans la présence de Dieu avec prédication incisive, louange prophétique d\'impact, et libération d\'onction. Venez vivre une visitation divine sans précédent.',
     fullProgram: [
-      '21h00 - 22h30 : Concert d\'ouverture (La Harpe de David)',
-      '22h30 - 23h30 : Prières de combat et d\'alignement spirituel',
-      '23h30 - 01h30 : Message prophétique par le Prophète Kader Josué Fadika',
-      '01h30 - 04h00 : Service d\'onction, délivrances et miracles de masse',
-      '04h00 - 05h00 : Sainte-Cène finale et actions de grâce'
+      '14h00 - 14h10 : Debut du programme',
+      '14h10 - 14h40 : Louange',
+      '14h40 - 15h30 : Première prédication et prière',
+      '15h30 - 17h00 : Prédication de l\orateur et prière',
+      '17h00 - 17h30 : Offrande et prière de fin'
     ],
     isFree: true,
-    countdownTarget: '2026-07-15T21:00:00',
+    countdownTarget: '2026-07-18T21:00:00',
     mapEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15891.139824249052!2d-4.0082!3d5.36!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNcKwMjEnMzYuMCJOIDTCsDAwJzI5LjUiVw!5e0!3m2!1sfr!2sci!4v1625000000000!5m2!1sfr!2sci',
     registeredCount: 0
   },

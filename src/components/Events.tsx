@@ -101,14 +101,15 @@ export default function Events({ onRegisterEvent, registeredEventIds }: EventsPr
             {/* Event Media Banner & Timer */}
             <div className="lg:col-span-5 space-y-6">
               <div className="relative rounded-xl overflow-hidden border border-gold-rich/15">
-                <img
-                  src={activeEvent.imageUrl}
-                  alt={activeEvent.title}
-                  className="w-full h-auto object-cover aspect-[4/3]"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-deep-green/90 via-transparent to-transparent" />
-              </div>
+  <img
+    src={activeEvent.imageUrl}
+    alt={activeEvent.title}
+    className="w-full h-auto object-contain"
+    referrerPolicy="no-referrer"
+  />
+
+  <div className="absolute inset-0 bg-gradient-to-t from-deep-green/90 via-transparent to-transparent pointer-events-none" />
+</div>
 
               {/* Spectacular Countdown Box */}
               <div className="p-5 rounded-xl border border-gold-rich/20 bg-deep-green/80 shadow-md">
@@ -232,7 +233,6 @@ export default function Events({ onRegisterEvent, registeredEventIds }: EventsPr
                         <Ticket className="w-6 h-6 animate-pulse" />
                       </div>
                       <h3 className="font-cinzel text-xl font-bold text-pristine-white">Votre Ticket d'Accès</h3>
-                      <p className="text-xs text-neutral-gray">Présentez ce QR Code au guichet d'accueil protocolairre.</p>
                     </div>
 
                     {/* Physical Ticket Simulation */}
@@ -251,7 +251,7 @@ export default function Events({ onRegisterEvent, registeredEventIds }: EventsPr
                       {/* QR Code */}
                       <div className="p-2.5 bg-white rounded-lg mb-4">
                         <img
-                          src={ticketDetails.qrUrl}
+                          src={activeEvent.imageUrl}
                           alt="Ticket QR Code"
                           className="w-32 h-32"
                           referrerPolicy="no-referrer"
