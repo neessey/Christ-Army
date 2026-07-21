@@ -356,7 +356,7 @@ export default function UserAccount({ user }: UserAccountProps) {
                     <div className="space-y-4">
                       {registeredEvents.length === 0 ? (
                         <p className="text-xs text-neutral-gray font-light italic">
-                          Vous ne vous êtes inscrit à aucun grand rassemblement pour l'instant. Visitez la section Événements pour réserver vos places !
+                          Vous ne vous êtes inscrit à aucun grand rassemblement pour l'instant. Visitez la section programme pour réserver vos places !
                         </p>
                       ) : (
                         <div className="space-y-3">

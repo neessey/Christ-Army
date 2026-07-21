@@ -61,7 +61,7 @@ export const DEPARTMENTS_DATA: Department[] = [
     responsibilities: [
       "Participer à la préparation logistique des programmes.",
 "Veiller au bon déroulement des programmes avant, pendant et après chaque activité.",
-"Coordonner les équipes afin d'assurer une organisation fluide et efficace.",
+"Coordonner les équipes afin d'assurer une organisation fluide et efficace.", 
 "Contribuer au maintien de l'ordre pendant le service.",
     ],
     image: '/assets/intercession.jpeg'
@@ -206,7 +206,7 @@ export const BLOG_DATA: BlogPost[] = [
 ];
 
 export const MOCK_ADMIN_METRICS = {
-  totalVisitors: 45200,
+  totalDepartments: 6,
   visitorsGrowth: 15.4,
   conversionsRate: 8.2,
   conversionsGrowth: 1.2,

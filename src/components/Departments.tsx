@@ -136,7 +136,7 @@ export default function Departments({ onJoinDepartment, joinedDepartmentIds }: D
                           onClick={() => setSelectedDeptId(dept.id)}
                           className="w-full py-2.5 rounded border border-gold-rich/20 bg-primary-green/20 hover:bg-gold-rich hover:text-deep-green text-xs text-gold-bright font-mono uppercase tracking-widest transition-all duration-300"
                         >
-                          En savoir plus & Rejoindre
+                         Rejoindre
                         </button>
                       </div>
                     </motion.div>

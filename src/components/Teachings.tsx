@@ -481,7 +481,7 @@ export default function Teachings({
                         <div>
                           <div className="flex justify-between items-center text-[10px] font-mono text-neutral-gray mb-2">
                             <span>{post.date}</span>
-                            <span>{post.readTime} de lecture</span>
+                           
                           </div>
 
                           <h3 className="font-cinzel text-lg font-bold text-pristine-white leading-snug tracking-wide group-hover:text-gold-bright transition-colors line-clamp-2">
@@ -499,15 +499,7 @@ export default function Teachings({
                           </span>
 
                           <div className="flex items-center gap-3">
-                            <button
-                              onClick={(e) => handleBlogLike(post.id, e)}
-                              className={`flex items-center gap-1 text-[10px] font-mono ${
-                                liked ? 'text-red-500 font-bold' : 'text-neutral-gray hover:text-red-400'
-                              }`}
-                            >
-                              <Heart className={`w-3.5 h-3.5 ${liked ? 'fill-current' : ''}`} />
-                              <span>{currentLikes}</span>
-                            </button>
+                           
 
                             <button
                               onClick={(e) => {

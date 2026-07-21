@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RefreshCw, TrendingUp, Users, Heart, Calendar, Eye, Globe, Share2, Plus, Trash2, CheckCircle, FileSpreadsheet, Send, ShieldCheck, Flame, BellRing, AlertCircle, Loader2 } from 'lucide-react';
+import { RefreshCw, TrendingUp, Users, Heart, Calendar, Eye, Globe, Share2, Plus, Trash2, CheckCircle, FileSpreadsheet, Send, ShieldCheck, Flame, BellRing, AlertCircle, Loader2, ImagePlus, X } from 'lucide-react';
 import { MOCK_ADMIN_METRICS } from '../mockData';
+import { uploadImageToCloudinary } from '../lib/cloudinaryService';
+import { subscribeToGlobalStats, getGlobalStatsOnce, GlobalStats } from '../lib/firestoreService';
+
 
 interface AdminDashboardProps {
   onAddTeaching: (teaching: any) => void;
@@ -53,6 +56,19 @@ export default function AdminDashboard({
   teachings
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<'stats' | 'temoignages' | 'enseignements' | 'evenements' | 'notifications'>('stats');
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<GlobalStats>({
+    totalMembers: 0,
+    membersGrowth: 0,
+    totalDepartments: 0,
+    departmentsGrowth: 0,
+    totalDiaspora: 0,
+    diasporaGrowth: 0,
+    solidarityFund: 0,
+    fundGrowth: 0,
+    countriesMap: [],
+    departmentsList: [],
+  } as GlobalStats);
   
   // Teaching form state
   const [teachTitle, setTeachTitle] = useState('');
@@ -60,6 +76,10 @@ export default function AdminDashboard({
   const [teachSize, setTeachSize] = useState('2.4 MB');
   const [teachDesc, setTeachDesc] = useState('');
   const [teachAdded, setTeachAdded] = useState(false);
+  const [teachImageFile, setTeachImageFile] = useState<File | null>(null);
+  const [teachImagePreview, setTeachImagePreview] = useState<string | null>(null);
+  const [isUploadingTeachImage, setIsUploadingTeachImage] = useState(false);
+  const [teachImageError, setTeachImageError] = useState<string | null>(null);
 
   // Event form state
   const [eventTitle, setEventTitle] = useState('');
@@ -68,6 +88,10 @@ export default function AdminDashboard({
   const [eventLoc, setEventLoc] = useState('');
   const [eventDesc, setEventDesc] = useState('');
   const [eventAdded, setEventAdded] = useState(false);
+  const [eventImageFile, setEventImageFile] = useState<File | null>(null);
+  const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
+  const [isUploadingEventImage, setIsUploadingEventImage] = useState(false);
+  const [eventImageError, setEventImageError] = useState<string | null>(null);
 
   // Simulation of Excel export
   const [isExporting, setIsExporting] = useState(false);
@@ -80,6 +104,32 @@ export default function AdminDashboard({
   const [isSendingNotif, setIsSendingNotif] = useState(false);
   const [notifSent, setNotifSent] = useState(false);
   const [notifError, setNotifError] = useState<string | null>(null);
+// Dans AdminDashboard.tsx
+
+// Pour une écoute en temps réel
+useEffect(() => {
+  setLoading(true);
+  const unsubscribe = subscribeToGlobalStats((newStats) => {
+    setStats(newStats);
+    setLoading(false);
+  });
+  
+  return () => unsubscribe();
+}, []);
+
+// OU pour une récupération unique
+useEffect(() => {
+  const loadStats = async () => {
+    setLoading(true);
+    const stats = await getGlobalStatsOnce();
+    if (stats) {
+      setStats(stats);
+    }
+    setLoading(false);
+  };
+  loadStats();
+}, []);
+   
 
   const handleExport = () => {
     setIsExporting(true);
@@ -91,8 +141,52 @@ export default function AdminDashboard({
     }, 1500);
   };
 
-  const handleCreateTeaching = (e: React.FormEvent) => {
+  const handleTeachImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTeachImageError(null);
+    setTeachImageFile(file);
+    setTeachImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearTeachImage = () => {
+    setTeachImageFile(null);
+    setTeachImagePreview(null);
+    setTeachImageError(null);
+  };
+
+  const handleEventImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEventImageError(null);
+    setEventImageFile(file);
+    setEventImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearEventImage = () => {
+    setEventImageFile(null);
+    setEventImagePreview(null);
+    setEventImageError(null);
+  };
+
+  const handleCreateTeaching = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTeachImageError(null);
+
+    let coverImage = 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400';
+
+    if (teachImageFile) {
+      setIsUploadingTeachImage(true);
+      try {
+        coverImage = await uploadImageToCloudinary(teachImageFile);
+      } catch (err) {
+        setIsUploadingTeachImage(false);
+        setTeachImageError(err instanceof Error ? err.message : 'Échec du téléversement de la photo.');
+        return;
+      }
+      setIsUploadingTeachImage(false);
+    }
+
     const newTeaching = {
       id: `t-admin-${Date.now()}`,
       title: teachTitle,
@@ -104,7 +198,7 @@ export default function AdminDashboard({
       description: teachDesc,
       playsCount: 0,
       downloadsCount: 0,
-      coverImage: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400',
+      coverImage,
       fileUrl: '#'
     };
 
@@ -114,11 +208,28 @@ export default function AdminDashboard({
       setTeachAdded(false);
       setTeachTitle('');
       setTeachDesc('');
+      clearTeachImage();
     }, 2500);
   };
 
-  const handleCreateEvent = (e: React.FormEvent) => {
+  const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEventImageError(null);
+
+    let imageUrl = 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=800';
+
+    if (eventImageFile) {
+      setIsUploadingEventImage(true);
+      try {
+        imageUrl = await uploadImageToCloudinary(eventImageFile);
+      } catch (err) {
+        setIsUploadingEventImage(false);
+        setEventImageError(err instanceof Error ? err.message : 'Échec du téléversement de la photo.');
+        return;
+      }
+      setIsUploadingEventImage(false);
+    }
+
     const newEvent = {
       id: `ev-admin-${Date.now()}`,
       title: eventTitle,
@@ -126,7 +237,7 @@ export default function AdminDashboard({
       time: eventTime,
       location: eventLoc,
       speaker: 'Prophète Kader Josué Fadika',
-      imageUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=800',
+      imageUrl,
       description: eventDesc,
       fullProgram: [
         '19h00 : Accueil spirituel et introduction',
@@ -148,6 +259,7 @@ export default function AdminDashboard({
       setEventDate('');
       setEventLoc('');
       setEventDesc('');
+      clearEventImage();
     }, 2500);
   };
 
@@ -262,114 +374,68 @@ export default function AdminDashboard({
             ))}
           </div>
 
-          {/* Content Pane */}
-          <div className="p-6 md:p-8">
-            <AnimatePresence mode="wait">
-              {activeTab === 'stats' && (
-                /* --- STATISTICS PANEL --- */
-                <motion.div
-                  key="stats"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-8 animate-fade-in"
-                >
+         {/* Content Pane */}
+      <div className="p-6 md:p-8">
+        <AnimatePresence mode="wait">
+          {activeTab === 'stats' && (
+            <motion.div
+              key="stats"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-8 animate-fade-in"
+            >
+              {loading ? (
+                <div className="flex justify-center items-center py-20">
+                  <Loader2 className="w-8 h-8 text-gold-bright animate-spin" />
+                  <span className="ml-3 text-neutral-gray font-mono text-sm">Chargement des statistiques...</span>
+                </div>
+              ) : (
+                <>
                   {/* Grid of 4 Core KPIs */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Total Members */}
                     <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
                       <div className="flex justify-between items-start mb-2">
                         <Users className="w-5 h-5 text-gold-bright" />
-                        <span className="text-[10px] font-mono text-emerald-400">+{MOCK_ADMIN_METRICS.visitorsGrowth}%</span>
+                        <span className="text-[10px] font-mono text-emerald-400">+{stats.membersGrowth || 0}%</span>
                       </div>
                       <span className="block text-2xl font-mono font-bold text-pristine-white">
-                        {MOCK_ADMIN_METRICS.totalVisitors.toLocaleString()}
+                        {stats.totalMembers.toLocaleString()}
                       </span>
-                      <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Visiteurs Uniques</span>
+                      <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Effectif Total des Membres</span>
                     </div>
 
+                    {/* Departments */}
                     <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
                       <div className="flex justify-between items-start mb-2">
                         <TrendingUp className="w-5 h-5 text-gold-bright" />
-                        <span className="text-[10px] font-mono text-emerald-400">+{MOCK_ADMIN_METRICS.conversionsRate}%</span>
+                        <span className="text-[10px] font-mono text-emerald-400">+{stats.departmentsGrowth || 0}%</span>
                       </div>
                       <span className="block text-2xl font-mono font-bold text-pristine-white">
-                        {MOCK_ADMIN_METRICS.conversionsRate}%
+                        {MOCK_ADMIN_METRICS.totalDepartments} 
                       </span>
-                      <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Taux d'Engagement</span>
+                      <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Départements Actifs</span>
                     </div>
 
-                    <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
-                      <div className="flex justify-between items-start mb-2">
-                        <Calendar className="w-5 h-5 text-gold-bright" />
-                        <span className="text-[10px] font-mono text-emerald-400">+{MOCK_ADMIN_METRICS.registrationsGrowth}%</span>
-                      </div>
-                      <span className="block text-2xl font-mono font-bold text-pristine-white">
-                        {MOCK_ADMIN_METRICS.totalRegistrations.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Enrôlements Totaux</span>
-                    </div>
 
+                    {/* Solidarity Fund */}
                     <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
                       <div className="flex justify-between items-start mb-2">
                         <Heart className="w-5 h-5 text-gold-bright" />
-                        <span className="text-[10px] font-mono text-emerald-400">+{MOCK_ADMIN_METRICS.donationsGrowth}%</span>
+                        <span className="text-[10px] font-mono text-emerald-400">+{stats.fundGrowth || 0}%</span>
                       </div>
                       <span className="block text-xl font-mono font-bold text-pristine-white">
-                        {MOCK_ADMIN_METRICS.totalDonations.toLocaleString()} FCFA
+                        {stats.solidarityFund.toLocaleString()} FCFA
                       </span>
                       <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Fonds de Solidarité</span>
                     </div>
                   </div>
 
-                  {/* Countries and Popular Content Splits */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Country mapping percentages */}
-                    <div className="lg:col-span-5 p-6 rounded-xl border border-gold-rich/10 bg-deep-green/60">
-                      <div className="flex items-center gap-2.5 mb-5 border-b border-gold-rich/5 pb-3">
-                        <Globe className="w-4.5 h-4.5 text-gold-rich" />
-                        <h4 className="font-cinzel text-sm font-bold text-pristine-white tracking-widest uppercase">Origine de la Diaspora</h4>
-                      </div>
-
-                      <div className="space-y-4">
-                        {MOCK_ADMIN_METRICS.countriesMap.map((mapItem, i) => (
-                          <div key={i} className="space-y-1.5 font-mono text-xs">
-                            <div className="flex justify-between">
-                              <span className="text-neutral-gray">{mapItem.country}</span>
-                              <span className="text-pristine-white font-bold">{mapItem.count.toLocaleString()} ({mapItem.percentage}%)</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-[#051d0d] rounded-full overflow-hidden border border-gold-rich/5">
-                              <div className="h-full bg-gradient-to-r from-gold-rich to-gold-bright" style={{ width: `${mapItem.percentage}%` }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Popular video broadcasts views */}
-                    <div className="lg:col-span-7 p-6 rounded-xl border border-gold-rich/10 bg-deep-green/60">
-                      <div className="flex items-center gap-2.5 mb-5 border-b border-gold-rich/5 pb-3">
-                        <Eye className="w-4.5 h-4.5 text-gold-rich" />
-                        <h4 className="font-cinzel text-sm font-bold text-pristine-white tracking-widest uppercase">Audience Christ Army TV</h4>
-                      </div>
-
-                      <div className="space-y-4">
-                        {MOCK_ADMIN_METRICS.popularVideos.map((vid, i) => (
-                          <div key={i} className="flex justify-between items-center p-3 rounded bg-[#051d0d] border border-gold-rich/5">
-                            <div>
-                              <span className="block text-xs font-bold text-pristine-white">{vid.title}</span>
-                              <span className="text-[10px] font-mono text-neutral-gray mt-0.5 block">Durée: {vid.duration}</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-xs font-mono font-bold text-gold-bright block">{vid.views.toLocaleString()}</span>
-                              <span className="text-[8px] font-mono uppercase text-neutral-gray block">Auditeurs cumulés</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                </>
               )}
+            </motion.div>
+          )}
 
               {activeTab === 'temoignages' && (
                 /* --- APPROBATION DES TÉMOIGNAGES --- */
@@ -470,9 +536,9 @@ export default function AdminDashboard({
                               onChange={e => setTeachCat(e.target.value as any)}
                               className="w-full px-4 py-2.5 rounded bg-[#051d0d] border border-gold-rich/15 text-pristine-white text-xs outline-none"
                             >
-                              <option value="pdf">Document PDF</option>
                               <option value="audio">Prédication Audio</option>
                               <option value="video">Session Vidéo</option>
+                                <option value="blog">Parole Fortes</option>
                             </select>
                           </div>
                           <div>
@@ -499,14 +565,40 @@ export default function AdminDashboard({
                             className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none transition-colors resize-none"
                           />
                         </div>
+
+                        <div>
+                          <label className="block text-xs font-mono uppercase text-neutral-gray mb-1.5">Photo de couverture</label>
+                          {teachImagePreview ? (
+                            <div className="relative rounded-lg overflow-hidden border border-gold-rich/20 group">
+                              <img src={teachImagePreview} alt="Aperçu" className="w-full h-40 object-cover" />
+                              <button
+                                type="button"
+                                onClick={clearTeachImage}
+                                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-500 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center gap-2 h-32 rounded-lg border border-dashed border-gold-rich/25 bg-primary-green/5 hover:bg-primary-green/10 cursor-pointer text-neutral-gray transition-colors">
+                              <ImagePlus className="w-6 h-6 text-gold-rich" />
+                              <span className="text-[10px] font-mono uppercase tracking-wider">Choisir une photo (JPG, PNG)</span>
+                              <input type="file" accept="image/*" onChange={handleTeachImageSelect} className="hidden" />
+                            </label>
+                          )}
+                          {teachImageError && (
+                            <p className="text-[10px] text-red-400 font-mono mt-1.5">{teachImageError}</p>
+                          )}
+                        </div>
                       </div>
 
                       <button
                         type="submit"
-                        className="w-full py-3 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold text-xs font-mono uppercase tracking-widest rounded flex items-center justify-center gap-2 hover:shadow-lg"
+                        disabled={isUploadingTeachImage}
+                        className="w-full py-3 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold text-xs font-mono uppercase tracking-widest rounded flex items-center justify-center gap-2 hover:shadow-lg disabled:opacity-60"
                       >
-                        <Send className="w-4 h-4" />
-                        Publier sous l'Autorité
+                        {isUploadingTeachImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        {isUploadingTeachImage ? 'Téléversement de la photo...' : 'Publier sous l\'Autorité'}
                       </button>
                     </form>
                   )}
@@ -529,7 +621,7 @@ export default function AdminDashboard({
                       </div>
                       <h4 className="font-cinzel text-xl font-bold text-pristine-white">Événement Programmé !</h4>
                       <p className="text-xs text-neutral-gray max-w-xs">
-                        Le grand programme a bien été créé. Les invités peuvent s'y inscrire immédiatement.
+                        Le grand rassemblement a bien été créé. Les fidèles peuvent s'y inscrire immédiatement et générer des codes QR.
                       </p>
                     </div>
                   ) : (
@@ -587,14 +679,40 @@ export default function AdminDashboard({
                             className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none transition-colors resize-none"
                           />
                         </div>
+
+                        <div>
+                          <label className="block text-xs font-mono uppercase text-neutral-gray mb-1.5">Photo de l'événement</label>
+                          {eventImagePreview ? (
+                            <div className="relative rounded-lg overflow-hidden border border-gold-rich/20 group">
+                              <img src={eventImagePreview} alt="Aperçu" className="w-full h-40 object-cover" />
+                              <button
+                                type="button"
+                                onClick={clearEventImage}
+                                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-500 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center gap-2 h-32 rounded-lg border border-dashed border-gold-rich/25 bg-primary-green/5 hover:bg-primary-green/10 cursor-pointer text-neutral-gray transition-colors">
+                              <ImagePlus className="w-6 h-6 text-gold-rich" />
+                              <span className="text-[10px] font-mono uppercase tracking-wider">Choisir une photo (JPG, PNG)</span>
+                              <input type="file" accept="image/*" onChange={handleEventImageSelect} className="hidden" />
+                            </label>
+                          )}
+                          {eventImageError && (
+                            <p className="text-[10px] text-red-400 font-mono mt-1.5">{eventImageError}</p>
+                          )}
+                        </div>
                       </div>
 
                       <button
                         type="submit"
-                        className="w-full py-3 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold text-xs font-mono uppercase tracking-widest rounded flex items-center justify-center gap-2 hover:shadow-lg"
+                        disabled={isUploadingEventImage}
+                        className="w-full py-3 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold text-xs font-mono uppercase tracking-widest rounded flex items-center justify-center gap-2 hover:shadow-lg disabled:opacity-60"
                       >
-                        <Calendar className="w-4 h-4" />
-                        Planifier la Réunion
+                        {isUploadingEventImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                        {isUploadingEventImage ? 'Téléversement de la photo...' : 'Planifier la Réunion'}
                       </button>
                     </form>
                   )}
@@ -703,4 +821,13 @@ export default function AdminDashboard({
       </div>
     </section>
   );
+}
+
+function setLoading(arg0: boolean) {
+  throw new Error('Function not implemented.');
+}
+
+
+function setStats(newStats: GlobalStats) {
+  throw new Error('Function not implemented.');
 }

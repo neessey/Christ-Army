@@ -3,10 +3,11 @@ export interface User {
   email: string;
   name: string;
   phone?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'manager' | 'admin';
+  managedDepartmentId?: string; // renseigné uniquement pour role === 'manager'
   favorites: string[]; // teaching or video IDs
   eventsRegistered: string[]; // event IDs
-  joinedDepartments: string[]; // department IDs
+  joinedDepartments: string[];
   donationHistory: {
     id: string;
     amount: number;

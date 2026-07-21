@@ -8,8 +8,10 @@ import Departments from './components/Departments';
 import Teachings from './components/Teachings';
 import Events from './components/Events';
 import Donations from './components/Donations';
+import Contact from './components/Contact';
 import AdminDashboard from './components/AdminDashboard';
 import UserAccount from './components/UserAccount';
+import ManagerAccount from './components/ManagerAccount';
 import Footer from './components/Footer';
 
 import { TESTIMONIES_DATA, TEACHINGS_DATA, EVENTS_DATA } from './mockData';
@@ -31,6 +33,7 @@ import {
   EventInscriptionData,
 } from './lib/firestoreService';
 import { subscribeToAuthChanges } from './lib/authService';
+import { subscribeMemberToDepartmentTopic } from './lib/messaging';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -205,6 +208,13 @@ export default function App() {
 
     if (user) {
       await addUserToDepartment(user.id, departmentId);
+      // Si les notifications sont déjà actives, on abonne aussi cet appareil
+      // au topic du nouveau département pour que le responsable puisse
+      // le joindre immédiatement.
+      if (user.notificationsEnabled && user.fcmTokens?.length) {
+        const latestToken = user.fcmTokens[user.fcmTokens.length - 1];
+        await subscribeMemberToDepartmentTopic(user.id, latestToken, departmentId);
+      }
     }
   };
 
@@ -302,7 +312,8 @@ export default function App() {
               { id: 'departments', label: 'Départements' },
               { id: 'teachings', label: 'Bibliothèque' },
               { id: 'events', label: 'Programme' },
-              { id: 'donations', label: 'Cotisations / Dons' },
+              { id: 'donations', label: 'Cotisations' },
+              { id: 'contact', label: 'Contact' }
             ].map(item => (
               <button
                 key={item.id}
@@ -316,7 +327,7 @@ export default function App() {
             ))}
           </div>
 
-          {/* Action Row: Espace Membre / Admin Cockpit */}
+          {/* Action Row: Espace Membre / Responsable / Admin Cockpit */}
           <div className="hidden xl:flex items-center gap-3">
             {user?.role === 'admin' && (
               <button
@@ -328,6 +339,19 @@ export default function App() {
                 }`}
               >
                 Cockpit Admin
+              </button>
+            )}
+
+            {user?.role === 'manager' && (
+              <button
+                onClick={() => handleNavigate('manager')}
+                className={`px-3 py-1.5 rounded border text-[10px] font-mono uppercase tracking-wider ${
+                  activeTab === 'manager'
+                    ? 'bg-gold-bright text-deep-green font-bold border-gold-bright'
+                    : 'bg-primary-green/20 border-gold-rich/20 text-gold-bright hover:bg-gold-rich hover:text-deep-green'
+                }`}
+              >
+                Espace Responsable
               </button>
             )}
 
@@ -367,7 +391,8 @@ export default function App() {
                   { id: 'departments', label: 'Départements' },
                   { id: 'teachings', label: 'Bibliothèque' },
                   { id: 'events', label: 'Programme' },
-                  { id: 'donations', label: 'Cotisations & Dons' },
+                  { id: 'donations', label: 'Cotisations' },
+                  { id: 'contact', label: 'FAQ & Contact' },
                   { id: 'account', label: 'Espace Membre' }
                 ].map(item => (
                   <button
@@ -387,6 +412,15 @@ export default function App() {
                     className="w-full text-center py-2.5 bg-gold-rich text-deep-green font-bold font-mono text-xs uppercase tracking-widest rounded"
                   >
                     Console d'Administration
+                  </button>
+                )}
+
+                {user?.role === 'manager' && (
+                  <button
+                    onClick={() => handleNavigate('manager')}
+                    className="w-full text-center py-2.5 bg-gold-rich text-deep-green font-bold font-mono text-xs uppercase tracking-widest rounded"
+                  >
+                    Espace Responsable
                   </button>
                 )}
               </div>
@@ -437,7 +471,13 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'contact' && <Contact />}
+
             {activeTab === 'account' && <UserAccount user={user} />}
+
+            {activeTab === 'manager' && user?.role === 'manager' && (
+              <ManagerAccount user={user} />
+            )}
 
             {activeTab === 'admin' && user?.role === 'admin' && (
               <AdminDashboard

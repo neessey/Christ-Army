@@ -4,6 +4,7 @@ import {
   Heart, CreditCard, ShieldAlert, CheckCircle2, Download, Printer, 
   Send, ShieldCheck, Mail, Phone, Globe, Star, Award 
 } from 'lucide-react';
+import { saveDonationToFirestore } from '../lib/firestoreService';
 
 interface DonationsProps {
   onAddDonation: (donation: any) => void;
@@ -20,40 +21,46 @@ export default function Donations({ onAddDonation }: DonationsProps) {
 const paymentMethod = 'Wave';
   const [receipt, setReceipt] = useState<any | null>(null);
   const [donateSubmitted, setDonateSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false); // Pour le chargement
 
-const handleDonateSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+ const handleDonateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const numericAmount = parseFloat(amount);
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) return;
 
-  if (isNaN(numericAmount) || numericAmount <= 0) return;
+    setIsSubmitting(true);
 
+    try {
+      const reference = `CA-WAVE-${Math.floor(Math.random() * 900000) + 100000}`;
+      
+      // Créer l'objet donation
+      const newDonation = {
+        id: reference,
+        amount: numericAmount,
+        paymentMethod: 'Wave',
+        date: new Date().toISOString(),
+        status: 'Comfirmé' as "Confirmé",
+        referenceCode: reference,
+        donorName: donorName || 'Anonyme',
+        donorEmail: donateEmail || 'non-renseigne@gmail.com',
+        donorPhone: donatePhone || 'N/A',
+        createdAt: new Date().toISOString()
+      };
 
-  const reference = `CA-WAVE-${Math.floor(Math.random() * 900000) + 100000}`;
+      // 1. Enregistrer dans Firestore
+      await saveDonationToFirestore(newDonation);
 
-
-  const newDonation = {
-    id: reference,
-    amount: numericAmount,
-    paymentMethod: 'Wave',
-    date: new Date().toLocaleDateString('fr-FR'),
-    status: 'En attente',
-    referenceCode: reference
-  };
-
-
-  onAddDonation(newDonation);
+      // 2. Appeler la fonction du parent (si nécessaire)
+      onAddDonation(newDonation);
 
 
   // Lien Wave de paiement
   const wavePaymentLink = `https://pay.wave.com/m/M_ci_waw-9EveeQZb/c/ci/`;
-
-
   window.open(
     wavePaymentLink,
     '_blank'
   );
-
 
   setReceipt({
     id: reference,
@@ -65,12 +72,17 @@ const handleDonateSubmit = (e: React.FormEvent) => {
     date: new Date().toLocaleDateString('fr-FR') +
       ' à ' +
       new Date().toLocaleTimeString('fr-FR'),
-    status: 'En attente'
+    status: 'Confirmé'
   });
 
-
-  setDonateSubmitted(true);
-};
+setDonateSubmitted(true);
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement du don:', error);
+      alert('Une erreur est survenue lors de l\'enregistrement. Veuillez réessayer.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleDonateReset = () => {
     setDonateSubmitted(false);
@@ -200,7 +212,7 @@ const handleDonateSubmit = (e: React.FormEvent) => {
                       type="email"
                       value={donateEmail}
                       onChange={e => setDonateEmail(e.target.value)}
-                      placeholder="Ex: fidele@gmail.com"
+                      placeholder="Ex: christwalker@gmail.com"
                       className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none transition-colors"
                     />
                   </div>
@@ -212,12 +224,20 @@ Votre contribution est effectuée exclusivement via Wave grâce à un lien de pa
                     </p>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-4 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold uppercase text-xs tracking-widest rounded-lg hover:shadow-lg transition-all transform hover:-translate-y-0.5"
-                  >
-Payer avec Wave - {parseFloat(amount || '0').toLocaleString()} FCFA
-                  </button>
+                 <button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full py-4 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold uppercase text-xs tracking-widest rounded-lg hover:shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="animate-spin">⏳</span>
+            Enregistrement en cours...
+          </span>
+        ) : (
+          `Payer avec Wave - ${parseFloat(amount || '0').toLocaleString()} FCFA`
+        )}
+      </button>
                 </form>
               </motion.div>
             ) : (

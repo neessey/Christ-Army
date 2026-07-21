@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Phone, MapPin, Send, HelpCircle, ChevronDown, ChevronUp, MessageSquare, Clock } from 'lucide-react';
 
 export default function Contact() {
+  const WHATSAPP_NUMBER = "2250767835670"; // sans le +
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   
   // WhatsApp Chat Simulation
@@ -13,63 +14,42 @@ export default function Contact() {
   const [inputMsg, setInputMsg] = useState('');
 
   const faqs = [
-    {
-      q: 'Quels sont les jours et heures de culte à l\'Auditorium Central ?',
-      a: 'Nous avons trois réunions majeures par semaine : le culte d\'enseignement doctrinal le Mercredi de 18h30 à 21h00, la grande veillée de combat spirituel le Vendredi de 22h00 à 02h00, et le culte d\'impact pastoral et miracles le Dimanche de 08h00 à 12h30.'
-    },
-    {
-      q: 'Comment prendre un rendez-vous pastoral avec le Prophète Kader Josué Fadika ?',
-      a: 'Les rendez-vous pastoraux et d\'écoute spirituelle ont lieu les mardis et jeudis de 09h00 à 15h00. Vous pouvez enregistrer votre demande de consultation en vous adressant directement au secrétariat via l\'outil de chat WhatsApp ou en appelant le bureau d\'accueil.'
-    },
-    {
-      q: 'Les enseignements et livrets PDF sont-ils payants ?',
-      a: 'Non, tous nos livrets d\'études bibliques, résumés prophétiques de prédications et podcasts audio sont mis gratuitement à disposition de tous les fidèles sur cette plateforme afin de nourrir la foi du plus grand nombre.'
-    },
-    {
-      q: 'Comment sont gérés les dons et offrandes collectés ?',
-      a: 'La transparence comptable est une de nos exigences fondamentales. 100% des contributions financières collectées sont affectées au loyer et à la maintenance technique de l\'auditorium, au financement des missions d\'évangélisation en brousse, et aux programmes d\'aide alimentaire pour les orphelins et les veuves.'
-    }
-  ];
+  {
+    q: "Quels sont les horaires des cultes ?",
+    a: "Nos principaux rendez-vous sont organisés chaque semaine. Consultez la rubrique « Programme » de notre site ou nos réseaux sociaux pour connaître les horaires mis à jour des cultes, veillées et programmes spéciaux/du mois."
+  },
+  {
+    q: "Comment devenir membre de Christ Army ?",
+    a: "Vous pouvez rejoindre Christ Army en remplissant le formulaire d'adhésion disponible sur notre plateforme ou directement auprès de l'accueil après un programme. Un responsable prendra ensuite contact avec vous pour vous accompagner dans votre intégration."
+  },
+  {
+    q: "Comment puis-je faire un don ou une offrande ?",
+    a: "Les dons et les offrandes peuvent être effectués directement depuis la plateforme via les moyens de paiement proposés ou pendant les différents programmes. "
+  },
+  {
+    q: "Comment rejoindre un département de service ?",
+    a: "Après votre inscription en tant que membre, vous pouvez demander à intégrer un département (Intercession, Chorale, Protocole, Évangélisation, Communication, etc.). Le responsable concerné prendra contact avec vous après validation de votre demande."
+  },
 
+];
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMsg.trim()) return;
+ const handleSendMessage = (e: React.FormEvent) => {
+  e.preventDefault();
 
-    const userMessage = {
-      sender: 'user',
-      text: inputMsg,
-      time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-    };
+  if (!inputMsg.trim()) return;
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputMsg('');
+  const message = encodeURIComponent(inputMsg);
 
-    // Simulated reply
-    setTimeout(() => {
-      let botReply = 'Merci pour votre message. Un membre de notre équipe d\'accueil protocolaire ou un pasteur de permanence va traiter votre demande sous peu. Demeurez béni !';
-      
-      const lower = inputMsg.toLowerCase();
-      if (lower.includes('prière') || lower.includes('prier')) {
-        botReply = 'Votre requête de prière a bien été transférée à notre département d\'Intercession (La Colonne de Feu). Nous prions immédiatement pour votre cas. Croyez seulement !';
-      } else if (lower.includes('rendez-vous') || lower.includes('voir le prophète')) {
-        botReply = 'Pour fixer un rendez-vous spirituel avec le Prophète Kader Josué, merci de nous transmettre votre Nom complet, Numéro WhatsApp et la nature de votre requête. Le secrétariat vous répondra sous 24h.';
-      }
+  window.open(
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`,
+    "_blank"
+  );
 
-      setMessages(prev => [
-        ...prev,
-        {
-          sender: 'bot',
-          text: botReply,
-          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    }, 1500);
-  };
-
+  setInputMsg("");
+};
   return (
     <section id="contact" className="relative py-24 bg-deep-green border-t border-gold-rich/10">
       <div className="absolute top-1/2 right-1/10 w-[450px] h-[450px] rounded-full bg-gold-rich/3 blur-[120px] pointer-events-none" />
@@ -96,9 +76,7 @@ export default function Contact() {
             <h3 className="font-cinzel text-2xl font-bold text-pristine-white tracking-wide">
               Nos Canaux de Communication
             </h3>
-            <p className="text-sm text-neutral-gray leading-relaxed font-light">
-              Le secrétariat général du ministère Christ Army centralise l'ensemble des courriers, requêtes de prières, signalements de témoignages et propositions de partenariats. N'hésitez pas à nous écrire directement.
-            </p>
+           
 
             <div className="space-y-6">
               <div className="flex gap-4 items-start p-4 rounded-xl bg-primary-green/10 border border-gold-rich/5 hover:border-gold-rich/15 transition-all">
@@ -107,17 +85,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <span className="text-xs font-mono text-gold-bright uppercase tracking-wider block mb-0.5">Adresse Physique</span>
-                  <span className="text-sm text-pristine-white">Auditorium Central, Zone Industrielle, Abidjan, Côte d'Ivoire</span>
-                </div>
-              </div>
-
-              <div className="flex gap-4 items-start p-4 rounded-xl bg-primary-green/10 border border-gold-rich/5 hover:border-gold-rich/15 transition-all">
-                <div className="w-10 h-10 rounded-lg bg-gold-rich/10 flex items-center justify-center text-gold-rich shrink-0 border border-gold-rich/20">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-xs font-mono text-gold-bright uppercase tracking-wider block mb-0.5">Courriel Électronique</span>
-                  <span className="text-sm text-pristine-white">secretariat@christarmy-ministry.org</span>
+                  <span className="text-sm text-pristine-white">Abidjan, Côte d'Ivoire</span>
                 </div>
               </div>
 
@@ -127,25 +95,24 @@ export default function Contact() {
                 </div>
                 <div>
                   <span className="text-xs font-mono text-gold-bright uppercase tracking-wider block mb-0.5">Ligne Directe</span>
-                  <span className="text-sm text-pristine-white">+225 07 89 45 12 36 • +33 6 45 12 89 56</span>
+                  <span className="text-sm text-pristine-white">+225 07 67 83 56 70 <br /> +225 07 16 40 01 22 <br /> +225 01 43 35 59 21</span>
                 </div>
               </div>
+                          </div>
 
-              <div className="flex gap-4 items-start p-4 rounded-xl bg-primary-green/10 border border-gold-rich/5 hover:border-gold-rich/15 transition-all">
-                <div className="w-10 h-10 rounded-lg bg-gold-rich/10 flex items-center justify-center text-gold-rich shrink-0 border border-gold-rich/20">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-xs font-mono text-gold-bright uppercase tracking-wider block mb-0.5">Heures de Permanence</span>
-                  <span className="text-sm text-pristine-white">Mardi au Dimanche : 08:30 - 18:00 (GMT)</span>
-                </div>
-              </div>
-            </div>
 
             {/* Launch chat shortcut */}
             <button
-              onClick={() => setShowChatSimulator(!showChatSimulator)}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:shadow-emerald-500/20 transition-all"
+onClick={() => {
+  const message = encodeURIComponent(
+    "Shalom, je souhaite contacter l'accueil de Christ Army."
+  );
+
+  window.open(
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`,
+    "_blank"
+  );
+}}              className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:shadow-emerald-500/20 transition-all"
             >
               <MessageSquare className="w-5 h-5" />
               {showChatSimulator ? "Masquer la messagerie" : "Lancer le Chat WhatsApp"}

@@ -15,7 +15,10 @@ type ImportMetaWithEnv = ImportMeta & {
 };
 
 const NOTIFICATIONS_API_URL = (import.meta as ImportMetaWithEnv).env.VITE_NOTIFICATIONS_API_URL;
-
+ 
+// URL de votre petit serveur Node (même principe que celui de Huinest Food sur
+// Render) qui utilise firebase-admin pour abonner un jeton à un topic FCM.
+ 
 async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
   try {
@@ -25,7 +28,21 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null
     return null;
   }
 }
-
+ 
+/**
+ * Abonne le jeton FCM déjà enregistré d'un membre à un nouveau topic de
+ * département — à appeler quand il rejoint un département APRÈS avoir déjà
+ * activé les notifications (sinon il ne recevrait jamais les messages du
+ * responsable de ce département tant qu'il ne réactive pas manuellement).
+ */
+export async function subscribeMemberToDepartmentTopic(
+  uid: string,
+  existingToken: string,
+  departmentId: string
+) {
+  await subscribeTokenToTopics(uid, existingToken, [`dept-${departmentId}`]);
+}
+ 
 async function subscribeTokenToTopics(uid: string, token: string, topics: string[]) {
   if (!NOTIFICATIONS_API_URL) {
     console.warn('VITE_NOTIFICATIONS_API_URL non configurée : abonnement aux topics ignoré.');
@@ -41,7 +58,7 @@ async function subscribeTokenToTopics(uid: string, token: string, topics: string
     console.error('Erreur d\'abonnement aux topics de notification:', err);
   }
 }
-
+ 
 /**
  * Flux complet d'activation des notifications pour un membre connecté :
  * 1. enregistre le service worker
@@ -59,20 +76,20 @@ export async function enableNotificationsForMember(
 ): Promise<string | null> {
   const messaging = await getMessagingInstance();
   if (!messaging) return null;
-
+ 
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return null;
-
+ 
   const registration = await registerServiceWorker();
   if (!registration) return null;
-
+ 
   try {
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration,
     });
     if (!token) return null;
-
+ 
     await saveFcmToken(uid, token);
     await subscribeTokenToTopics(uid, token, ['all-members', ...extraTopics]);
     return token;
@@ -81,20 +98,20 @@ export async function enableNotificationsForMember(
     return null;
   }
 }
-
+ 
 export async function disableNotificationsForMember(uid: string, token: string) {
   await removeFcmToken(uid, token);
   const { setNotificationsEnabled } = await import('./firestoreService');
   await setNotificationsEnabled(uid, false);
 }
-
+ 
 /** Écoute les notifications reçues pendant que l'app est ouverte au premier plan. */
 export async function listenToForegroundNotifications(
   onNotification: (title: string, body: string) => void
 ) {
   const messaging = await getMessagingInstance();
   if (!messaging) return () => {};
-
+ 
   return onMessage(messaging, payload => {
     const title = payload.notification?.title ?? 'Christ Army';
     const body = payload.notification?.body ?? '';
