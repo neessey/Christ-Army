@@ -115,7 +115,7 @@ export const DEPARTMENTS_DATA: Department[] = [
     name: 'Commando',
     iconName: 'Sliders',
     description: 'Assurer une captation audiovisuelle irréprochable et un son pur lors des cultes.',
-    longDescription: 'La Technique est la cheville ouvrière logistique et acoustique de Christ Army. Chargé de la sonorisation de l\'auditorium, de la régie vidéo pour la diffusion internet en direct, et de la gestion des lumières scéniques, ce département garantit que le message de l\'Évangile soit entendu et vu avec le plus haut niveau de clarté professionnelle possible.',
+    longDescription: 'Le département Commando est un ministère de service qui accompagne les invités lors des temps de ministère et des manifestations de la puissance de Dieu. Dans un esprit de respect, de discrétion et de vigilance, ses membres veillent à assister les personnes touchées par l\'Esprit de Dieu, afin que chaque temps de prière se déroule dans l\'ordre, la paix et la dignité.',
     verse: '« Que tout se fasse avec bienséance et avec ordre. » — 1 Corinthiens 14:40',
     headOfDepartment: 'Yves Dion Christwalker',
     requirements: [
@@ -125,7 +125,7 @@ export const DEPARTMENTS_DATA: Department[] = [
 "Être fidèle aux temps de formation et aux activités du département."
     ],
     responsibilities: [
-"Assister les personnes sous l'action de l'Esprit de Dieu avec respect et bienveillance.",
+"Assister les personnes sous l'onction de l'Esprit de Dieu avec respect et bienveillance.",
 "Veiller à leur sécurité durant les temps de ministère.",
 "Intervenir avec discrétion afin de préserver le bon déroulement des temps de prière.",
 "Servir avec sensibilité, vigilance et dans le respect des directives du ministère."

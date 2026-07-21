@@ -297,7 +297,7 @@ export default function App() {
             className="flex items-center gap-2.5 text-left group"
           >
             <div className="w-10 h-10 rounded-full overflow-hidden bg-gold-rich/10 border border-gold-rich/20 flex items-center justify-center transition-all group-hover:bg-gold-rich">
-              <img src="/assets/logo.jpg" alt="Christ Army logo" className="w-full h-full object-cover" />
+              <img src="/assets/logo.png" alt="Christ Army logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <span className="font-cinzel text-base font-bold tracking-widest text-pristine-white block">CHRIST ARMY</span>

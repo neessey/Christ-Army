@@ -21,8 +21,8 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || 'Christ Army';
   const options = {
     body: payload.notification?.body || '',
-    icon: '/assets/logo.jpg',
-    badge: '/assets/logo.jpg',
+    icon: '/assets/logo.png',
+    badge: '/assets/logo.png',
     data: payload.data || {},
   };
   self.registration.showNotification(title, options);
