@@ -1,23 +1,14 @@
-// Upload d'image vers Cloudinary depuis le navigateur (upload "unsigned",
-// même principe que sur DjassaClub / Deep Digital).
-//
-// Pré-requis dans le Cloudinary Console :
-// Settings > Upload > Upload presets > Add upload preset
-//   - Signing Mode: Unsigned
-//   - Notez le nom du preset et votre "Cloud name" (visible en haut du dashboard)
-//
-// Puis renseignez ces deux valeurs dans votre .env :
-//   VITE_CLOUDINARY_CLOUD_NAME=votre_cloud_name
-//   VITE_CLOUDINARY_UPLOAD_PRESET=votre_upload_preset
+const env = (import.meta as ImportMeta & {
+  env?: Record<string, string | undefined>;
+}).env;
 
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string | undefined;
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string | undefined;
+const CLOUD_NAME = env?.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = env?.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 export class CloudinaryConfigError extends Error {}
 
 /**
- * Téléverse un fichier image sur Cloudinary et retourne son URL sécurisée
- * (`secure_url`), à stocker directement comme `coverImage` / `imageUrl`.
+ * Téléverse un fichier (image, vidéo ou audio) sur Cloudinary et retourne son URL sécurisée (`secure_url`).
  */
 export async function uploadImageToCloudinary(file: File): Promise<string> {
   if (!CLOUD_NAME || !UPLOAD_PRESET) {
@@ -30,14 +21,15 @@ export async function uploadImageToCloudinary(file: File): Promise<string> {
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+  // Utilisation de /auto/upload pour gérer dynamiquement images, vidéos et audios
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
     method: 'POST',
     body: formData,
   });
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => null);
-    throw new Error(errBody?.error?.message || 'Échec du téléversement de l\'image sur Cloudinary.');
+    throw new Error(errBody?.error?.message || 'Échec du téléversement du fichier sur Cloudinary.');
   }
 
   const data = await res.json();

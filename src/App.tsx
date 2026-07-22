@@ -7,7 +7,7 @@ import Vision from './components/Vision';
 import Departments from './components/Departments';
 import Teachings from './components/Teachings';
 import Events from './components/Events';
-import Donations from './components/Donations';
+import ExternatRegistrations from './components/ExternatRegistrations';
 import Contact from './components/Contact';
 import AdminDashboard from './components/AdminDashboard';
 import UserAccount from './components/UserAccount';
@@ -34,6 +34,7 @@ import {
 } from './lib/firestoreService';
 import { subscribeToAuthChanges } from './lib/authService';
 import { subscribeMemberToDepartmentTopic } from './lib/messaging';
+import ExternalRegistration from './components/ExternatRegistrations';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -234,7 +235,6 @@ export default function App() {
       await addDonationToHistory(user.id, donation);
     }
     // Les visiteurs non connectés voient toujours la confirmation de don dans
-    // Donations.tsx, mais l'historique n'est conservé que sur un espace membre.
   };
 
   const handleAddTestimony = (newTest: Testimony) => {
@@ -277,6 +277,10 @@ export default function App() {
     document.body.removeChild(link);
   };
 
+  const handleDeleteTeaching = (id: string) => {
+  setTeachings(prev => prev.filter(t => t.id !== id));
+};
+
   const handleNavigate = (section: string) => {
     setActiveTab(section);
     setMobileMenuOpen(false);
@@ -312,8 +316,7 @@ export default function App() {
               { id: 'departments', label: 'Départements' },
               { id: 'teachings', label: 'Bibliothèque' },
               { id: 'events', label: 'Programme' },
-              { id: 'donations', label: 'Cotisations' },
-              { id: 'contact', label: 'Contact' }
+{ id: 'external-registration', label: 'Inscription' },
             ].map(item => (
               <button
                 key={item.id}
@@ -391,8 +394,7 @@ export default function App() {
                   { id: 'departments', label: 'Départements' },
                   { id: 'teachings', label: 'Bibliothèque' },
                   { id: 'events', label: 'Programme' },
-                  { id: 'donations', label: 'Cotisations' },
-                  { id: 'contact', label: 'FAQ & Contact' },
+{ id: 'external-registration', label: 'Inscription' }, 
                   { id: 'account', label: 'Espace Membre' }
                 ].map(item => (
                   <button
@@ -450,13 +452,14 @@ export default function App() {
             )}
 
             {activeTab === 'teachings' && (
-              <Teachings
-                favorites={user?.favorites || []}
-                onToggleFavorite={handleToggleFavorite}
-                testimonies={testimonies}
-                onAddTestimony={handleAddTestimony}
-              />
-            )}
+  <Teachings
+    favorites={user?.favorites || []}
+    onToggleFavorite={handleToggleFavorite}
+    testimonies={testimonies}
+    onAddTestimony={handleAddTestimony}
+    teachings={teachings} // <-- Ajoutez cette ligne ici
+  />
+)}
 
             {activeTab === 'events' && (
               <Events
@@ -465,9 +468,9 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'donations' && (
-              <Donations
-                onAddDonation={handleAddDonation}
+           {activeTab === 'external-registration' && (
+              <ExternalRegistration 
+                whatsappGroupUrl="https://chat.whatsapp.com/LteHADsUNnt51eygOqqOeQ?mode=gi_t" 
               />
             )}
 
@@ -480,16 +483,16 @@ export default function App() {
             )}
 
             {activeTab === 'admin' && user?.role === 'admin' && (
-              <AdminDashboard
-                onAddTeaching={handleAddTeaching}
-                onAddEvent={handleAddEvent}
-                onApproveTestimony={handleApproveTestimony}
-                onExportExcel={handleExportExcelSimulation}
-                testimonies={testimonies}
-                registeredEvents={events}
-                teachings={teachings}
-              />
-            )}
+  <AdminDashboard
+    onAddTeaching={handleAddTeaching}
+    onAddEvent={handleAddEvent}
+    onApproveTestimony={handleApproveTestimony}
+    onExportExcel={handleExportExcelSimulation}
+    testimonies={testimonies}
+    registeredEvents={events}
+    teachings={teachings}
+  />
+)}
           </motion.div>
         </AnimatePresence>
       </main>

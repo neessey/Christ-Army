@@ -7,7 +7,7 @@ export interface User {
   managedDepartmentId?: string; // renseigné uniquement pour role === 'manager'
   favorites: string[]; // teaching or video IDs
   eventsRegistered: string[]; // event IDs
-  joinedDepartments: string[];
+  joinedDepartments: string[]; // department IDs
   donationHistory: {
     id: string;
     amount: number;
@@ -15,6 +15,10 @@ export interface User {
     date: string;
     status: string;
     referenceCode: string;
+    donorName?: string;
+    donorPhone?: string;
+    donorEmail?: string;
+    note?: string;
   }[];
   notificationsEnabled?: boolean;
   fcmTokens?: string[];

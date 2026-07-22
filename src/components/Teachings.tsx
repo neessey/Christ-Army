@@ -13,6 +13,7 @@ interface TeachingsProps {
   favorites: string[];
   testimonies: Testimony[];
   onAddTestimony: (testimony: Testimony) => void;
+  teachings: Teaching[]; // <-- Ajoutez cette ligne
 }
 
 type TabType = 'all' | 'video' | 'audio'  | 'blog' | 'testimonies';
@@ -21,7 +22,8 @@ export default function Teachings({
   onToggleFavorite, 
   favorites, 
   testimonies, 
-  onAddTestimony 
+  onAddTestimony,
+  teachings // <-- Récupérez-la ici
 }: TeachingsProps) {
   // Navigation tabs inside Bibliothèque
   const [activeTab, setActiveTab] = useState<TabType>('all');
@@ -144,7 +146,8 @@ export default function Teachings({
   };
 
   // Filter regular teachings
-  const filteredTeachings = TEACHINGS_DATA.filter(t => {
+ // Filter regular teachings (remplacer TEACHINGS_DATA par teachings)
+  const filteredTeachings = teachings.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           t.author.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -265,50 +268,33 @@ export default function Teachings({
 
 
               {/* VIDEO COVER */}
-              <div className="w-full sm:w-36 h-36 shrink-0 rounded-xl overflow-hidden relative border border-gold-rich/10">
+           {/* VIDEO COVER DIRECTEMENT DEPUIS LA VIDÉO */}
+<div className="w-full sm:w-36 h-36 shrink-0 rounded-xl overflow-hidden relative border border-gold-rich/10 bg-black">
 
-                {teaching.category === "video" ? (
+  {teaching.category === "video" && teaching.videoUrl ? (
+    <video
+      src={teaching.videoUrl}
+      preload="metadata"
+      className="w-full h-full object-cover pointer-events-none"
+    />
+  ) : (
+    <img
+      src={teaching.coverImage}
+      alt={teaching.title}
+      className="w-full h-full object-cover transition-all duration-500"
+      referrerPolicy="no-referrer"
+    />
+  )}
 
-                  <video
-                    id={`video-${teaching.id}`}
-                    src={teaching.videoUrl}
-                    poster={teaching.coverImage}
-                    className="w-full h-full object-cover"
-                    preload="metadata"
-                  />
+  <div className="absolute inset-0 bg-deep-green/20 pointer-events-none" />
 
-                ) : (
+  {/* CATEGORY ICON */}
+  <div className="absolute top-2 left-2 p-1.5 rounded bg-deep-green/80 text-gold-bright border border-gold-rich/10 z-10">
+    {teaching.category === 'video' && <Video className="w-4 h-4" />}
+    {teaching.category === 'audio' && <Volume2 className="w-4 h-4" />}
+  </div>
 
-                  <img
-                    src={teaching.coverImage}
-                    alt={teaching.title}
-                    className="w-full h-full object-cover transition-all duration-500"
-                    referrerPolicy="no-referrer"
-                  />
-
-                )}
-
-
-                <div className="absolute inset-0 bg-deep-green/35 pointer-events-none" />
-
-
-                {/* CATEGORY ICON */}
-                <div className="absolute top-2 left-2 p-1.5 rounded bg-deep-green/80 text-gold-bright border border-gold-rich/10">
-
-                  {teaching.category === 'video' && (
-                    <Video className="w-4 h-4" />
-                  )}
-
-                  {teaching.category === 'audio' && (
-                    <Volume2 className="w-4 h-4" />
-                  )}
-
-                </div>
-
-              </div>
-
-
-
+</div>
               {/* BODY */}
 
               <div className="flex-grow flex flex-col justify-between">
@@ -677,8 +663,8 @@ export default function Teachings({
               <div className="flex-grow">
                 <span className="text-[9px] font-mono uppercase tracking-widest text-gold-bright block">Lecture en cours...</span>
                 <span className="text-xs font-bold text-pristine-white block truncate">
-                  {TEACHINGS_DATA.find(t => t.id === playingId)?.title}
-                </span>
+  {teachings.find(t => t.id === playingId)?.title}
+</span>
               </div>
               <button
                 onClick={() => {

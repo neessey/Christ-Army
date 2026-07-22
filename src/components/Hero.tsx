@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Play, Calendar, Volume2, VolumeX, Flame, Cross } from 'lucide-react';
+import { Play, Calendar, Volume2, VolumeX, Flame, Cross, UserPlus } from 'lucide-react';
 
 interface HeroProps {
   onNavigate: (section: string) => void;
@@ -95,12 +95,12 @@ export default function Hero({ onNavigate }: HeroProps) {
             </button>
 
             <button
-              onClick={() => onNavigate('vision')}
+              onClick={() => onNavigate('external-registration')}
               className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-deep-green/50 hover:bg-primary-green/40 text-pristine-white border border-gold-rich/30 hover:border-gold-rich/60 font-medium rounded-lg transition-all duration-300 backdrop-blur-sm"
               id="hero-cta-vision"
             >
-              <Calendar className="w-5 h-5 text-gold-rich" />
-              Découvrir la Vision
+              <UserPlus className="w-5 h-5 text-gold-rich" />
+              Rejoint-nous
             </button>
           </div>
         </motion.div>

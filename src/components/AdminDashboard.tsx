@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RefreshCw, TrendingUp, Users, Heart, Calendar, Eye, Globe, Share2, Plus, Trash2, CheckCircle, FileSpreadsheet, Send, ShieldCheck, Flame, BellRing, AlertCircle, Loader2, ImagePlus, X } from 'lucide-react';
+import { RefreshCw, TrendingUp, Users, Heart, Calendar, Eye, Globe, Share2, Plus, Trash2, CheckCircle, FileSpreadsheet, Send, ShieldCheck, Flame, BellRing, AlertCircle, Loader2, ImagePlus, Video, Music, X } from 'lucide-react';
 import { MOCK_ADMIN_METRICS } from '../mockData';
 import { uploadImageToCloudinary } from '../lib/cloudinaryService';
-import { subscribeToGlobalStats, getGlobalStatsOnce, GlobalStats } from '../lib/firestoreService';
-
+import { subscribeToGlobalStats, GlobalStats } from '../lib/firestoreService';
 
 interface AdminDashboardProps {
   onAddTeaching: (teaching: any) => void;
@@ -76,10 +75,12 @@ export default function AdminDashboard({
   const [teachSize, setTeachSize] = useState('2.4 MB');
   const [teachDesc, setTeachDesc] = useState('');
   const [teachAdded, setTeachAdded] = useState(false);
-  const [teachImageFile, setTeachImageFile] = useState<File | null>(null);
-  const [teachImagePreview, setTeachImagePreview] = useState<string | null>(null);
-  const [isUploadingTeachImage, setIsUploadingTeachImage] = useState(false);
-  const [teachImageError, setTeachImageError] = useState<string | null>(null);
+  
+  // Teaching Media File state (Image, Video or Audio)
+  const [teachMediaFile, setTeachMediaFile] = useState<File | null>(null);
+  const [teachMediaPreview, setTeachMediaPreview] = useState<string | null>(null);
+  const [isUploadingTeachMedia, setIsUploadingTeachMedia] = useState(false);
+  const [teachMediaError, setTeachMediaError] = useState<string | null>(null);
 
   // Event form state
   const [eventTitle, setEventTitle] = useState('');
@@ -88,10 +89,12 @@ export default function AdminDashboard({
   const [eventLoc, setEventLoc] = useState('');
   const [eventDesc, setEventDesc] = useState('');
   const [eventAdded, setEventAdded] = useState(false);
-  const [eventImageFile, setEventImageFile] = useState<File | null>(null);
-  const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
-  const [isUploadingEventImage, setIsUploadingEventImage] = useState(false);
-  const [eventImageError, setEventImageError] = useState<string | null>(null);
+  
+  // Event Media File state (Image or Video banner)
+  const [eventMediaFile, setEventMediaFile] = useState<File | null>(null);
+  const [eventMediaPreview, setEventMediaPreview] = useState<string | null>(null);
+  const [isUploadingEventMedia, setIsUploadingEventMedia] = useState(false);
+  const [eventMediaError, setEventMediaError] = useState<string | null>(null);
 
   // Simulation of Excel export
   const [isExporting, setIsExporting] = useState(false);
@@ -104,32 +107,16 @@ export default function AdminDashboard({
   const [isSendingNotif, setIsSendingNotif] = useState(false);
   const [notifSent, setNotifSent] = useState(false);
   const [notifError, setNotifError] = useState<string | null>(null);
-// Dans AdminDashboard.tsx
 
-// Pour une écoute en temps réel
-useEffect(() => {
-  setLoading(true);
-  const unsubscribe = subscribeToGlobalStats((newStats) => {
-    setStats(newStats);
-    setLoading(false);
-  });
-  
-  return () => unsubscribe();
-}, []);
-
-// OU pour une récupération unique
-useEffect(() => {
-  const loadStats = async () => {
+  useEffect(() => {
     setLoading(true);
-    const stats = await getGlobalStatsOnce();
-    if (stats) {
-      setStats(stats);
-    }
-    setLoading(false);
-  };
-  loadStats();
-}, []);
-   
+    const unsubscribe = subscribeToGlobalStats((newStats) => {
+      setStats(newStats);
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, []);
 
   const handleExport = () => {
     setIsExporting(true);
@@ -141,50 +128,53 @@ useEffect(() => {
     }, 1500);
   };
 
-  const handleTeachImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handlers for Teaching Media Selection
+  const handleTeachMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setTeachImageError(null);
-    setTeachImageFile(file);
-    setTeachImagePreview(URL.createObjectURL(file));
+    setTeachMediaError(null);
+    setTeachMediaFile(file);
+    setTeachMediaPreview(URL.createObjectURL(file));
   };
 
-  const clearTeachImage = () => {
-    setTeachImageFile(null);
-    setTeachImagePreview(null);
-    setTeachImageError(null);
+  const clearTeachMedia = () => {
+    setTeachMediaFile(null);
+    setTeachMediaPreview(null);
+    setTeachMediaError(null);
   };
 
-  const handleEventImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handlers for Event Media Selection
+  const handleEventMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setEventImageError(null);
-    setEventImageFile(file);
-    setEventImagePreview(URL.createObjectURL(file));
+    setEventMediaError(null);
+    setEventMediaFile(file);
+    setEventMediaPreview(URL.createObjectURL(file));
   };
 
-  const clearEventImage = () => {
-    setEventImageFile(null);
-    setEventImagePreview(null);
-    setEventImageError(null);
+  const clearEventMedia = () => {
+    setEventMediaFile(null);
+    setEventMediaPreview(null);
+    setEventMediaError(null);
   };
 
   const handleCreateTeaching = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTeachImageError(null);
+    setTeachMediaError(null);
 
-    let coverImage = 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400';
+    let mediaUrl = 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400';
 
-    if (teachImageFile) {
-      setIsUploadingTeachImage(true);
+    if (teachMediaFile) {
+      setIsUploadingTeachMedia(true);
       try {
-        coverImage = await uploadImageToCloudinary(teachImageFile);
+        // Uploading media (photo, video or audio resource) via Cloudinary service
+        mediaUrl = await uploadImageToCloudinary(teachMediaFile);
       } catch (err) {
-        setIsUploadingTeachImage(false);
-        setTeachImageError(err instanceof Error ? err.message : 'Échec du téléversement de la photo.');
+        setIsUploadingTeachMedia(false);
+        setTeachMediaError(err instanceof Error ? err.message : 'Échec du téléversement du média.');
         return;
       }
-      setIsUploadingTeachImage(false);
+      setIsUploadingTeachMedia(false);
     }
 
     const newTeaching = {
@@ -198,8 +188,9 @@ useEffect(() => {
       description: teachDesc,
       playsCount: 0,
       downloadsCount: 0,
-      coverImage,
-      fileUrl: '#'
+      coverImage: teachCat === 'video' || teachCat === 'audio' ? 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400' : mediaUrl,
+      videoUrl: teachCat === 'video' ? mediaUrl : '#',
+      fileUrl: teachCat === 'audio' ? mediaUrl : '#'
     };
 
     onAddTeaching(newTeaching);
@@ -208,26 +199,26 @@ useEffect(() => {
       setTeachAdded(false);
       setTeachTitle('');
       setTeachDesc('');
-      clearTeachImage();
+      clearTeachMedia();
     }, 2500);
   };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEventImageError(null);
+    setEventMediaError(null);
 
     let imageUrl = 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=800';
 
-    if (eventImageFile) {
-      setIsUploadingEventImage(true);
+    if (eventMediaFile) {
+      setIsUploadingEventMedia(true);
       try {
-        imageUrl = await uploadImageToCloudinary(eventImageFile);
+        imageUrl = await uploadImageToCloudinary(eventMediaFile);
       } catch (err) {
-        setIsUploadingEventImage(false);
-        setEventImageError(err instanceof Error ? err.message : 'Échec du téléversement de la photo.');
+        setIsUploadingEventMedia(false);
+        setEventMediaError(err instanceof Error ? err.message : 'Échec du téléversement de la photo/vidéo.');
         return;
       }
-      setIsUploadingEventImage(false);
+      setIsUploadingEventMedia(false);
     }
 
     const newEvent = {
@@ -259,7 +250,7 @@ useEffect(() => {
       setEventDate('');
       setEventLoc('');
       setEventDesc('');
-      clearEventImage();
+      clearEventMedia();
     }, 2500);
   };
 
@@ -273,7 +264,7 @@ useEffect(() => {
     setNotifError(null);
 
     if (!NOTIFICATIONS_API_URL) {
-      setNotifError('VITE_NOTIFICATIONS_API_URL n\'est pas configurée. Déployez le petit serveur Node (dossier /server) puis renseignez son URL.');
+      setNotifError('VITE_NOTIFICATIONS_API_URL n\'est pas configurée. Déployez le petit serveur Node puis renseignez son URL.');
       return;
     }
 
@@ -303,7 +294,6 @@ useEffect(() => {
 
   return (
     <section id="admin" className="relative py-24 bg-deep-green border-t border-gold-bright/10">
-      {/* Golden halo lighting behind cockpit */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gold-rich/5 blur-[150px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -374,71 +364,62 @@ useEffect(() => {
             ))}
           </div>
 
-         {/* Content Pane */}
-      <div className="p-6 md:p-8">
-        <AnimatePresence mode="wait">
-          {activeTab === 'stats' && (
-            <motion.div
-              key="stats"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="space-y-8 animate-fade-in"
-            >
-              {loading ? (
-                <div className="flex justify-center items-center py-20">
-                  <Loader2 className="w-8 h-8 text-gold-bright animate-spin" />
-                  <span className="ml-3 text-neutral-gray font-mono text-sm">Chargement des statistiques...</span>
-                </div>
-              ) : (
-                <>
-                  {/* Grid of 4 Core KPIs */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                    {/* Total Members */}
-                    <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
-                      <div className="flex justify-between items-start mb-2">
-                        <Users className="w-5 h-5 text-gold-bright" />
-                        <span className="text-[10px] font-mono text-emerald-400">+{stats.membersGrowth || 0}%</span>
-                      </div>
-                      <span className="block text-2xl font-mono font-bold text-pristine-white">
-                        {stats.totalMembers.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Effectif Total des Membres</span>
+          {/* Content Pane */}
+          <div className="p-6 md:p-8">
+            <AnimatePresence mode="wait">
+              {activeTab === 'stats' && (
+                <motion.div
+                  key="stats"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-8 animate-fade-in"
+                >
+                  {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                      <Loader2 className="w-8 h-8 text-gold-bright animate-spin" />
+                      <span className="ml-3 text-neutral-gray font-mono text-sm">Chargement des statistiques...</span>
                     </div>
-
-                    {/* Departments */}
-                    <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
-                      <div className="flex justify-between items-start mb-2">
-                        <TrendingUp className="w-5 h-5 text-gold-bright" />
-                        <span className="text-[10px] font-mono text-emerald-400">+{stats.departmentsGrowth || 0}%</span>
+                  ) : (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
+                        <div className="flex justify-between items-start mb-2">
+                          <Users className="w-5 h-5 text-gold-bright" />
+                          <span className="text-[10px] font-mono text-emerald-400">+{stats.membersGrowth || 0}%</span>
+                        </div>
+                        <span className="block text-2xl font-mono font-bold text-pristine-white">
+                          {stats.totalMembers.toLocaleString()}
+                        </span>
+                        <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Effectif Total des Membres</span>
                       </div>
-                      <span className="block text-2xl font-mono font-bold text-pristine-white">
-                        {MOCK_ADMIN_METRICS.totalDepartments} 
-                      </span>
-                      <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Départements Actifs</span>
-                    </div>
 
-
-                    {/* Solidarity Fund */}
-                    <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
-                      <div className="flex justify-between items-start mb-2">
-                        <Heart className="w-5 h-5 text-gold-bright" />
-                        <span className="text-[10px] font-mono text-emerald-400">+{stats.fundGrowth || 0}%</span>
+                      <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
+                        <div className="flex justify-between items-start mb-2">
+                          <TrendingUp className="w-5 h-5 text-gold-bright" />
+                          <span className="text-[10px] font-mono text-emerald-400">+{stats.departmentsGrowth || 0}%</span>
+                        </div>
+                        <span className="block text-2xl font-mono font-bold text-pristine-white">
+                          {MOCK_ADMIN_METRICS.totalDepartments} 
+                        </span>
+                        <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Départements Actifs</span>
                       </div>
-                      <span className="block text-xl font-mono font-bold text-pristine-white">
-                        {stats.solidarityFund.toLocaleString()} FCFA
-                      </span>
-                      <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Fonds de Solidarité</span>
-                    </div>
-                  </div>
 
-                </>
+                      <div className="p-5 rounded-xl bg-deep-green border border-gold-rich/10">
+                        <div className="flex justify-between items-start mb-2">
+                          <Heart className="w-5 h-5 text-gold-bright" />
+                          <span className="text-[10px] font-mono text-emerald-400">+{stats.fundGrowth || 0}%</span>
+                        </div>
+                        <span className="block text-xl font-mono font-bold text-pristine-white">
+                          {stats.solidarityFund.toLocaleString()} FCFA
+                        </span>
+                        <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-gray block mt-0.5">Fonds de Solidarité</span>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
               )}
-            </motion.div>
-          )}
 
               {activeTab === 'temoignages' && (
-                /* --- APPROBATION DES TÉMOIGNAGES --- */
                 <motion.div
                   key="temoignages"
                   initial={{ opacity: 0, y: 10 }}
@@ -490,7 +471,7 @@ useEffect(() => {
               )}
 
               {activeTab === 'enseignements' && (
-                /* --- ADD TEACHING FORM --- */
+                /* --- ADD TEACHING FORM (SUPPORTING PHOTO, VIDEO, OR AUDIO) --- */
                 <motion.div
                   key="enseignements"
                   initial={{ opacity: 0, y: 10 }}
@@ -505,14 +486,14 @@ useEffect(() => {
                       </div>
                       <h4 className="font-cinzel text-xl font-bold text-pristine-white">Enseignement Publié !</h4>
                       <p className="text-xs text-neutral-gray max-w-xs">
-                        Le document d'édification a bien été indexé dans la bibliothèque spirituelle. Les membres peuvent le lire ou l'écouter immédiatement.
+                        Le média d'édification (photo, vidéo ou audio) a bien été indexé dans la bibliothèque spirituelle.
                       </p>
                     </div>
                   ) : (
                     <form onSubmit={handleCreateTeaching} className="space-y-5">
                       <div className="border-b border-gold-rich/10 pb-4">
                         <h4 className="font-cinzel text-base font-bold text-pristine-white uppercase tracking-wider">Indexation d'Enseignement</h4>
-                        <p className="text-[10px] text-neutral-gray mt-1">Ajouter de la nourriture de foi au catalogue de Christ Army.</p>
+                        <p className="text-[10px] text-neutral-gray mt-1">Ajouter une ressource (Audio, Vidéo ou Support Documentaire) avec illustration.</p>
                       </div>
 
                       <div className="space-y-4">
@@ -536,9 +517,9 @@ useEffect(() => {
                               onChange={e => setTeachCat(e.target.value as any)}
                               className="w-full px-4 py-2.5 rounded bg-[#051d0d] border border-gold-rich/15 text-pristine-white text-xs outline-none"
                             >
-                              <option value="audio">Prédication Audio</option>
-                              <option value="video">Session Vidéo</option>
-                                <option value="blog">Parole Fortes</option>
+                              <option value="audio">Prédication Audio (MP3/WAV)</option>
+                              <option value="video">Session Vidéo (MP4)</option>
+                              <option value="pdf">Support PDF / Livret</option>
                             </select>
                           </div>
                           <div>
@@ -548,7 +529,7 @@ useEffect(() => {
                               required
                               value={teachSize}
                               onChange={e => setTeachSize(e.target.value)}
-                              placeholder="Ex: 2.4 MB (ou 15 Pages)"
+                              placeholder="Ex: 15 MB ou 1h 15m"
                               className="w-full px-4 py-2.5 rounded bg-[#051d0d] border border-gold-rich/15 text-pristine-white text-xs outline-none"
                             />
                           </div>
@@ -566,39 +547,67 @@ useEffect(() => {
                           />
                         </div>
 
+                        {/* Dynamic Upload Field based on Media Type selection */}
                         <div>
-                          <label className="block text-xs font-mono uppercase text-neutral-gray mb-1.5">Photo de couverture</label>
-                          {teachImagePreview ? (
-                            <div className="relative rounded-lg overflow-hidden border border-gold-rich/20 group">
-                              <img src={teachImagePreview} alt="Aperçu" className="w-full h-40 object-cover" />
+                          <label className="block text-xs font-mono uppercase text-neutral-gray mb-1.5">
+                            {teachCat === 'video' && 'Fichier Vidéo (MP4) ou Photo d\'illustration'}
+                            {teachCat === 'audio' && 'Fichier Audio (MP3) ou Photo d\'illustration'}
+                            {teachCat === 'pdf' && 'Photo de couverture / Livret'}
+                          </label>
+
+                          {teachMediaPreview ? (
+                            <div className="relative rounded-lg overflow-hidden border border-gold-rich/25 bg-black/40 p-2 flex items-center justify-center">
+                              {teachCat === 'video' ? (
+                                <video src={teachMediaPreview} className="w-full h-40 object-cover rounded" controls />
+                              ) : teachCat === 'audio' ? (
+                                <div className="flex items-center gap-3 py-6 text-gold-bright">
+                                  <Music className="w-8 h-8 animate-bounce" />
+                                  <span className="text-xs font-mono">Fichier Audio prêt à être indexé</span>
+                                </div>
+                              ) : (
+                                <img src={teachMediaPreview} alt="Aperçu" className="w-full h-40 object-cover rounded" />
+                              )}
                               <button
                                 type="button"
-                                onClick={clearTeachImage}
-                                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-500 transition-colors"
+                                onClick={clearTeachMedia}
+                                className="absolute top-3 right-3 p-1.5 rounded-full bg-black/80 text-white hover:bg-red-500 transition-colors z-10"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           ) : (
                             <label className="flex flex-col items-center justify-center gap-2 h-32 rounded-lg border border-dashed border-gold-rich/25 bg-primary-green/5 hover:bg-primary-green/10 cursor-pointer text-neutral-gray transition-colors">
-                              <ImagePlus className="w-6 h-6 text-gold-rich" />
-                              <span className="text-[10px] font-mono uppercase tracking-wider">Choisir une photo (JPG, PNG)</span>
-                              <input type="file" accept="image/*" onChange={handleTeachImageSelect} className="hidden" />
+                              {teachCat === 'video' && <Video className="w-6 h-6 text-gold-rich" />}
+                              {teachCat === 'audio' && <Music className="w-6 h-6 text-gold-rich" />}
+                              {teachCat === 'pdf' && <ImagePlus className="w-6 h-6 text-gold-rich" />}
+                              <span className="text-[10px] font-mono uppercase tracking-wider">
+                                {teachCat === 'video' && 'Sélectionner la vidéo ou l\'image (MP4, JPG, PNG)'}
+                                {teachCat === 'audio' && 'Sélectionner l\'audio ou l\'image (MP3, WAV)'}
+                                {teachCat === 'pdf' && 'Sélectionner l\'image de couverture (JPG, PNG)'}
+                              </span>
+                              <input 
+                                type="file" 
+                                accept={teachCat === 'video' ? 'video/*,image/*' : teachCat === 'audio' ? 'audio/*,image/*' : 'image/*'} 
+                                onChange={handleTeachMediaSelect} 
+                                className="hidden" 
+                              />
                             </label>
                           )}
-                          {teachImageError && (
-                            <p className="text-[10px] text-red-400 font-mono mt-1.5">{teachImageError}</p>
+                          {teachMediaError && (
+                            <p className="text-[10px] text-red-400 font-mono mt-1.5">{teachMediaError}</p>
                           )}
                         </div>
                       </div>
 
+                      
+
                       <button
                         type="submit"
-                        disabled={isUploadingTeachImage}
+                        disabled={isUploadingTeachMedia}
                         className="w-full py-3 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold text-xs font-mono uppercase tracking-widest rounded flex items-center justify-center gap-2 hover:shadow-lg disabled:opacity-60"
                       >
-                        {isUploadingTeachImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                        {isUploadingTeachImage ? 'Téléversement de la photo...' : 'Publier sous l\'Autorité'}
+                        {isUploadingTeachMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        {isUploadingTeachMedia ? 'Téléversement du fichier en cours...' : 'Publier sous l\'Autorité'}
                       </button>
                     </form>
                   )}
@@ -606,7 +615,7 @@ useEffect(() => {
               )}
 
               {activeTab === 'evenements' && (
-                /* --- ADD EVENT FORM --- */
+                /* --- ADD EVENT FORM (SUPPORTING PHOTO / BANNER) --- */
                 <motion.div
                   key="evenements"
                   initial={{ opacity: 0, y: 10 }}
@@ -621,14 +630,14 @@ useEffect(() => {
                       </div>
                       <h4 className="font-cinzel text-xl font-bold text-pristine-white">Événement Programmé !</h4>
                       <p className="text-xs text-neutral-gray max-w-xs">
-                        Le grand rassemblement a bien été créé. Les fidèles peuvent s'y inscrire immédiatement et générer des codes QR.
+                        Le grand rassemblement a bien été créé avec son visuel d'illustration.
                       </p>
                     </div>
                   ) : (
                     <form onSubmit={handleCreateEvent} className="space-y-5">
                       <div className="border-b border-gold-rich/10 pb-4">
                         <h4 className="font-cinzel text-base font-bold text-pristine-white uppercase tracking-wider">Programmer une Réunion</h4>
-                        <p className="text-[10px] text-neutral-gray mt-1">Gérer les dates et fiches logistiques des cultes et séminaires.</p>
+                        <p className="text-[10px] text-neutral-gray mt-1">Gérer les dates et fiches logistiques avec bannière illustrative.</p>
                       </div>
 
                       <div className="space-y-4">
@@ -675,19 +684,19 @@ useEffect(() => {
                             rows={3}
                             value={eventDesc}
                             onChange={e => setEventDesc(e.target.value)}
-                            placeholder="Expliquez la vision spirituelle de ce séminaire ou de cette nuit d'intercession..."
+                            placeholder="Expliquez la vision spirituelle de ce séminaire..."
                             className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none transition-colors resize-none"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-mono uppercase text-neutral-gray mb-1.5">Photo de l'événement</label>
-                          {eventImagePreview ? (
+                          <label className="block text-xs font-mono uppercase text-neutral-gray mb-1.5">Photo / Visuel de l'événement</label>
+                          {eventMediaPreview ? (
                             <div className="relative rounded-lg overflow-hidden border border-gold-rich/20 group">
-                              <img src={eventImagePreview} alt="Aperçu" className="w-full h-40 object-cover" />
+                              <img src={eventMediaPreview} alt="Aperçu" className="w-full h-40 object-cover" />
                               <button
                                 type="button"
-                                onClick={clearEventImage}
+                                onClick={clearEventMedia}
                                 className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-500 transition-colors"
                               >
                                 <X className="w-3.5 h-3.5" />
@@ -697,22 +706,22 @@ useEffect(() => {
                             <label className="flex flex-col items-center justify-center gap-2 h-32 rounded-lg border border-dashed border-gold-rich/25 bg-primary-green/5 hover:bg-primary-green/10 cursor-pointer text-neutral-gray transition-colors">
                               <ImagePlus className="w-6 h-6 text-gold-rich" />
                               <span className="text-[10px] font-mono uppercase tracking-wider">Choisir une photo (JPG, PNG)</span>
-                              <input type="file" accept="image/*" onChange={handleEventImageSelect} className="hidden" />
+                              <input type="file" accept="image/*" onChange={handleEventMediaSelect} className="hidden" />
                             </label>
                           )}
-                          {eventImageError && (
-                            <p className="text-[10px] text-red-400 font-mono mt-1.5">{eventImageError}</p>
+                          {eventMediaError && (
+                            <p className="text-[10px] text-red-400 font-mono mt-1.5">{eventMediaError}</p>
                           )}
                         </div>
                       </div>
 
                       <button
                         type="submit"
-                        disabled={isUploadingEventImage}
+                        disabled={isUploadingEventMedia}
                         className="w-full py-3 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold text-xs font-mono uppercase tracking-widest rounded flex items-center justify-center gap-2 hover:shadow-lg disabled:opacity-60"
                       >
-                        {isUploadingEventImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
-                        {isUploadingEventImage ? 'Téléversement de la photo...' : 'Planifier la Réunion'}
+                        {isUploadingEventMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                        {isUploadingEventMedia ? 'Téléversement du visuel...' : 'Planifier la Réunion'}
                       </button>
                     </form>
                   )}
@@ -720,7 +729,6 @@ useEffect(() => {
               )}
 
               {activeTab === 'notifications' && (
-                /* --- COMPOSITEUR DE NOTIFICATIONS PUSH (FCM) --- */
                 <motion.div
                   key="notifications"
                   initial={{ opacity: 0, y: 10 }}
@@ -737,7 +745,6 @@ useEffect(() => {
                     </p>
                   </div>
 
-                  {/* Modèles rapides */}
                   <div className="flex flex-wrap gap-2">
                     {NOTIF_TEMPLATES.map(tpl => (
                       <button
@@ -821,13 +828,4 @@ useEffect(() => {
       </div>
     </section>
   );
-}
-
-function setLoading(arg0: boolean) {
-  throw new Error('Function not implemented.');
-}
-
-
-function setStats(newStats: GlobalStats) {
-  throw new Error('Function not implemented.');
 }

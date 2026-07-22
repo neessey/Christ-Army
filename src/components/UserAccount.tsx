@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User as UserIcon, Bell, BellOff, Calendar, Heart, Loader2, AlertCircle, CheckCircle2, LogIn, UserPlus } from 'lucide-react';
+import { User as UserIcon, Bell, BellOff, Calendar, Heart, Loader2, AlertCircle, CheckCircle2, LogIn, UserPlus, Printer } from 'lucide-react';
 import { TEACHINGS_DATA, EVENTS_DATA } from '../mockData';
 import { User as UserType } from '../types';
 import {
@@ -11,6 +11,7 @@ import {
   translateAuthError,
 } from '../lib/authService';
 import { enableNotificationsForMember, disableNotificationsForMember } from '../lib/messaging';
+import { saveDonationToFirestore, addDonationToHistory } from '../lib/firestoreService';
 
 interface UserAccountProps {
   user: UserType | null;
@@ -30,6 +31,14 @@ export default function UserAccount({ user }: UserAccountProps) {
   const [notifBusy, setNotifBusy] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'profil' | 'favoris' | 'agenda' | 'dons'>('profil');
 
+  // État interne pour les paiements / dons intégrés
+  const [amount, setAmount] = useState<string>('5000');
+  const [donorName, setDonorName] = useState(user?.name || '');
+  const [donateEmail, setDonateEmail] = useState(user?.email || '');
+  const [donatePhone, setDonatePhone] = useState('');
+  const [receipt, setReceipt] = useState<any | null>(null);
+  const [donateSubmitted, setDonateSubmitted] = useState(false);
+
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -41,8 +50,6 @@ export default function UserAccount({ user }: UserAccountProps) {
       } else {
         await loginMember(email, password);
       }
-      // Le profil se met à jour automatiquement via l'abonnement Firestore
-      // dans App.tsx (onAuthStateChanged + subscribeToUserProfile).
     } catch (err) {
       setErrorMsg(translateAuthError(err));
     } finally {
@@ -82,6 +89,62 @@ export default function UserAccount({ user }: UserAccountProps) {
     }
   };
 
+  // Soumission d'un don intégré
+  const handleDonateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) return;
+
+    setIsSubmitting(true);
+    try {
+      const reference = `CA-WAVE-${Math.floor(Math.random() * 900000) + 100000}`;
+      const newDonation = {
+        id: reference,
+        amount: numericAmount,
+        paymentMethod: 'Wave',
+        date: new Date().toISOString(),
+        status: 'Confirmé' as const,
+        referenceCode: reference,
+        donorName: donorName || user?.name || 'Anonyme',
+        donorEmail: donateEmail || user?.email || 'non-renseigne@gmail.com',
+        donorPhone: donatePhone || 'N/A',
+        createdAt: new Date().toISOString()
+      };
+
+      // Sauvegarde globale et dans l'historique de l'utilisateur connecté s'il y en a un
+      await saveDonationToFirestore(newDonation);
+      if (user) {
+        await addDonationToHistory(user.id, newDonation);
+      }
+
+      window.open(`https://pay.wave.com/m/M_ci_waw-9EveeQZb/c/ci/`, '_blank');
+
+      setReceipt({
+        id: reference,
+        amount: numericAmount,
+        paymentMethod: 'Wave',
+        donorName: donorName || user?.name || 'Anonyme',
+        email: donateEmail || user?.email || 'non-renseigne@gmail.com',
+        phone: donatePhone || 'N/A',
+        date: new Date().toLocaleDateString('fr-FR') + ' à ' + new Date().toLocaleTimeString('fr-FR'),
+        status: 'Confirmé'
+      });
+
+      setDonateSubmitted(true);
+    } catch (error) {
+      console.error('Erreur don:', error);
+      alert('Une erreur est survenue lors de l\'enregistrement.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDonateReset = () => {
+    setDonateSubmitted(false);
+    setReceipt(null);
+    setAmount('5000');
+  };
+
   const favoritedTeachings = TEACHINGS_DATA.filter(t => user?.favorites?.includes(t.id));
   const registeredEvents = EVENTS_DATA.filter(e => user?.eventsRegistered?.includes(e.id));
 
@@ -106,7 +169,6 @@ export default function UserAccount({ user }: UserAccountProps) {
         <div className="max-w-4xl mx-auto">
           <AnimatePresence mode="wait">
             {!user ? (
-              /* --- FORMULAIRE DE CONNEXION / INSCRIPTION RÉEL (Firebase Auth) --- */
               <motion.div
                 key="login"
                 initial={{ opacity: 0, scale: 0.98 }}
@@ -121,12 +183,8 @@ export default function UserAccount({ user }: UserAccountProps) {
                   <h3 className="font-cinzel text-xl font-bold text-pristine-white">
                     {authMode === 'login' ? 'Authentification Sécurisée' : 'Créer mon Espace Membre'}
                   </h3>
-                  <p className="text-xs text-neutral-gray mt-1">
-                    {authMode === 'login' ? 'Saisissez vos identifiants pour entrer.' : 'Quelques informations pour ouvrir votre profil.'}
-                  </p>
                 </div>
 
-                {/* Toggle login / register */}
                 <div className="flex mb-6 rounded-lg border border-gold-rich/15 overflow-hidden">
                   <button
                     type="button"
@@ -158,7 +216,7 @@ export default function UserAccount({ user }: UserAccountProps) {
                         value={name}
                         onChange={e => setName(e.target.value)}
                         placeholder="Ex: Arthur Kouadio"
-                        className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none transition-colors"
+                        className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none"
                       />
                     </div>
                   )}
@@ -171,7 +229,7 @@ export default function UserAccount({ user }: UserAccountProps) {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="Ex: arthur@gmail.com"
-                      className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none transition-colors"
+                      className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none"
                     />
                   </div>
 
@@ -184,7 +242,7 @@ export default function UserAccount({ user }: UserAccountProps) {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none transition-colors"
+                      className="w-full px-4 py-2.5 rounded bg-primary-green/10 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none"
                     />
                   </div>
 
@@ -198,14 +256,14 @@ export default function UserAccount({ user }: UserAccountProps) {
                   {resetSent && (
                     <div className="flex items-start gap-2 p-3 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
                       <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                      <span>Email de réinitialisation envoyé, vérifiez votre boîte de réception.</span>
+                      <span>Email de réinitialisation envoyé.</span>
                     </div>
                   )}
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold uppercase text-xs tracking-widest rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                    className="w-full py-3.5 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold uppercase text-xs tracking-widest rounded-lg transition-all flex items-center justify-center gap-2"
                   >
                     {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                     {authMode === 'login' ? 'Se Connecter' : 'Créer mon Compte'}
@@ -215,7 +273,7 @@ export default function UserAccount({ user }: UserAccountProps) {
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="w-full text-center text-[10px] font-mono text-neutral-gray hover:text-gold-bright underline underline-offset-2"
+                      className="w-full text-center text-[10px] font-mono text-neutral-gray hover:text-gold-bright underline"
                     >
                       Mot de passe oublié ?
                     </button>
@@ -223,7 +281,6 @@ export default function UserAccount({ user }: UserAccountProps) {
                 </form>
               </motion.div>
             ) : (
-              /* --- ESPACE PERSONNEL DU MEMBRE CONNECTÉ --- */
               <motion.div
                 key="workspace"
                 initial={{ opacity: 0, y: 20 }}
@@ -231,7 +288,6 @@ export default function UserAccount({ user }: UserAccountProps) {
                 exit={{ opacity: 0, y: -20 }}
                 className="luxury-glass p-6 md:p-8 rounded-2xl border border-gold-rich/25 bg-gradient-to-br from-deep-green to-primary-green/10"
               >
-                {/* Workspace header profile */}
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-6 border-b border-gold-rich/10 pb-6 mb-8">
                   <div className="flex items-center gap-4 text-center sm:text-left">
                     <div>
@@ -249,165 +305,178 @@ export default function UserAccount({ user }: UserAccountProps) {
                     <button
                       onClick={handleToggleNotifications}
                       disabled={notifBusy}
-                      className={`p-2.5 rounded border transition-colors flex items-center gap-2 disabled:opacity-60 ${
-                        user.notificationsEnabled
-                          ? 'bg-gold-rich/10 border-gold-rich/30 text-gold-bright'
-                          : 'bg-primary-green/5 border-gold-rich/5 text-neutral-gray hover:text-white'
+                      className={`p-2.5 rounded border transition-colors flex items-center gap-2 ${
+                        user.notificationsEnabled ? 'bg-gold-rich/10 border-gold-rich/30 text-gold-bright' : 'bg-primary-green/5 text-neutral-gray'
                       }`}
-                      title={user.notificationsEnabled ? 'Notifications activées — cliquer pour désactiver' : 'Activer les rappels de culte par notification'}
                     >
-                      {notifBusy ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : user.notificationsEnabled ? (
-                        <Bell className="w-4 h-4" />
-                      ) : (
-                        <BellOff className="w-4 h-4" />
-                      )}
+                      {notifBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : user.notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={() => logoutMember()}
-                      className="px-4.5 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 font-mono text-[10px] uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all"
+                      className="px-4.5 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 font-mono text-[10px] uppercase"
                     >
                       Déconnexion
                     </button>
                   </div>
                 </div>
 
-                {!user.notificationsEnabled && (
-                  <div className="mb-6 text-[11px] font-mono text-neutral-gray bg-primary-green/10 border border-gold-rich/10 rounded-lg p-3 flex items-center gap-2">
-                    <Bell className="w-3.5 h-3.5 text-gold-rich shrink-0" />
-                    Activez les notifications pour recevoir un rappel avant chaque culte et les bilans hebdomadaires du ministère.
-                  </div>
-                )}
-
-                {/* Sub-tabs layout */}
-                <div className="flex gap-2 border-b border-gold-rich/5 pb-4 mb-6 scrollbar-none overflow-x-auto">
+                <div className="flex gap-2 border-b border-gold-rich/5 pb-4 mb-6 overflow-x-auto">
                   {(['profil', 'favoris', 'agenda', 'dons'] as const).map(tab => (
                     <button
                       key={tab}
                       onClick={() => setActiveSubTab(tab)}
-                      className={`px-4 py-2 rounded text-xs font-mono uppercase tracking-wider transition-all duration-300 ${
-                        activeSubTab === tab
-                          ? 'bg-gold-rich/10 text-gold-bright font-bold border border-gold-rich/30'
-                          : 'text-neutral-gray hover:text-pristine-white'
+                      className={`px-4 py-2 rounded text-xs font-mono uppercase tracking-wider transition-all ${
+                        activeSubTab === tab ? 'bg-gold-rich/10 text-gold-bright font-bold border border-gold-rich/30' : 'text-neutral-gray hover:text-white'
                       }`}
                     >
                       {tab === 'profil' && 'Profil Personnel'}
                       {tab === 'favoris' && 'Mes Favoris'}
                       {tab === 'agenda' && 'Agenda Culte'}
-                      {tab === 'dons' && 'Mes Offrandes'}
+                      {tab === 'dons' && 'Dons & Cotisations'}
                     </button>
                   ))}
                 </div>
 
-                {/* Sub Tab contents */}
                 <div>
                   {activeSubTab === 'profil' && (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="p-5 rounded-xl bg-deep-green/60 border border-gold-rich/10">
-                          <span className="text-[10px] font-mono text-gold-rich uppercase tracking-widest block mb-2">
-                            Rôle & Engagement
-                          </span>
-                          <p className="text-xs text-neutral-gray leading-relaxed font-light">
-                            Vous êtes actuellement enregistré au registre officiel des ChristWalkers. Ce profil vous permet de conserver vos favoris d'enseignements pastoraux, vos agendas et reçus de contribution financière.
-                          </p>
-                        </div>
-                        <div className="p-5 rounded-xl bg-deep-green/60 border border-gold-rich/10 flex flex-col justify-between">
-                          <div>
-                            <span className="text-[10px] font-mono text-gold-rich uppercase tracking-widest block mb-2">
-                              Statut d'Enrôlement
-                            </span>
-                            <span className="text-sm font-semibold text-pristine-white block">
-                              Départements : {user.joinedDepartments?.length || 0} rejoint
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono text-neutral-gray mt-4 block">
-                            Ref d'identité : CA-MEM-{user.id.slice(0, 8).toUpperCase()}
-                          </span>
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="p-5 rounded-xl bg-deep-green/60 border border-gold-rich/10">
+                        <span className="text-[10px] font-mono text-gold-rich uppercase block mb-2">Rôle & Engagement</span>
+                        <p className="text-xs text-neutral-gray font-light">Enregistré au registre officiel des ChristWalkers.</p>
+                      </div>
+                      <div className="p-5 rounded-xl bg-deep-green/60 border border-gold-rich/10">
+                        <span className="text-[10px] font-mono text-gold-rich uppercase block mb-2">Statut d'Enrôlement</span>
+                        <span className="text-sm font-semibold text-pristine-white">Départements : {user.joinedDepartments?.length || 0} rejoint</span>
                       </div>
                     </div>
                   )}
 
                   {activeSubTab === 'favoris' && (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {favoritedTeachings.length === 0 ? (
-                        <p className="text-xs text-neutral-gray font-light italic">
-                          Aucun enseignement ou livret PDF n'a été ajouté à vos favoris pour le moment. Allez dans la bibliothèque d'enseignements pour en ajouter !
-                        </p>
+                        <p className="text-xs text-neutral-gray italic">Aucun enseignement favori.</p>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {favoritedTeachings.map(t => (
-                            <div key={t.id} className="p-4 rounded-xl border border-gold-rich/10 bg-primary-green/10 flex justify-between items-center">
-                              <div>
-                                <span className="text-[8px] font-mono text-gold-rich uppercase tracking-wider">{t.category}</span>
-                                <h4 className="text-xs font-bold text-pristine-white truncate max-w-[200px] mt-0.5">{t.title}</h4>
-                              </div>
-                              <span className="text-[10px] font-mono text-gold-bright font-bold">{t.durationOrPages}</span>
+                        favoritedTeachings.map(t => (
+                          <div key={t.id} className="p-4 rounded-xl border border-gold-rich/10 bg-primary-green/10 flex justify-between items-center">
+                            <div>
+                              <span className="text-[8px] font-mono text-gold-rich uppercase">{t.category}</span>
+                              <h4 className="text-xs font-bold text-pristine-white mt-0.5">{t.title}</h4>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))
                       )}
                     </div>
                   )}
 
                   {activeSubTab === 'agenda' && (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {registeredEvents.length === 0 ? (
-                        <p className="text-xs text-neutral-gray font-light italic">
-                          Vous ne vous êtes inscrit à aucun grand rassemblement pour l'instant. Visitez la section programme pour réserver vos places !
-                        </p>
+                        <p className="text-xs text-neutral-gray italic">Aucune inscription à un événement.</p>
                       ) : (
-                        <div className="space-y-3">
-                          {registeredEvents.map(ev => (
-                            <div key={ev.id} className="p-4 rounded-xl border border-gold-rich/10 bg-primary-green/10 flex justify-between items-center flex-wrap gap-4">
-                              <div className="flex items-center gap-3">
-                                <Calendar className="w-5 h-5 text-gold-rich shrink-0" />
-                                <div>
-                                  <h4 className="text-xs font-bold text-pristine-white">{ev.title}</h4>
-                                  <span className="text-[10px] font-mono text-neutral-gray block mt-0.5">{ev.date} • {ev.time}</span>
-                                </div>
+                        registeredEvents.map(ev => (
+                          <div key={ev.id} className="p-4 rounded-xl border border-gold-rich/10 bg-primary-green/10 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                              <Calendar className="w-5 h-5 text-gold-rich" />
+                              <div>
+                                <h4 className="text-xs font-bold text-pristine-white">{ev.title}</h4>
+                                <span className="text-[10px] font-mono text-neutral-gray">{ev.date} • {ev.time}</span>
                               </div>
-                              <span className="text-[9px] font-mono text-gold-bright font-bold bg-gold-rich/15 px-2 py-0.5 rounded uppercase">
-                                Place Réservée
-                              </span>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))
                       )}
                     </div>
                   )}
 
                   {activeSubTab === 'dons' && (
-                    <div className="space-y-4">
-                      {(user.donationHistory || []).length === 0 ? (
-                        <p className="text-xs text-neutral-gray font-light italic">
-                          Aucun reçu de contribution financière n'est enregistré sur ce profil pour l'instant.
-                        </p>
-                      ) : (
-                        <div className="space-y-2.5">
-                          {user.donationHistory.map(don => (
-                            <div key={don.id} className="p-3.5 rounded-lg border border-gold-rich/10 bg-deep-green/60 flex justify-between items-center font-mono text-[10px] text-neutral-gray">
-                              <div className="flex gap-4">
-                                <span>Ref: {don.id}</span>
-                                <span>Date: {don.date}</span>
-                                <span className="text-gold-rich">Via {don.paymentMethod}</span>
-                              </div>
-                              <span className="text-gold-bright font-bold text-xs">{don.amount.toLocaleString()} FCFA</span>
+                    <div className="space-y-6">
+                      {!donateSubmitted ? (
+                        <div className="p-6 rounded-xl border border-gold-rich/20 bg-primary-green/10">
+                          <h4 className="font-cinzel text-lg font-bold text-pristine-white mb-4">Effectuer une semence (Wave)</h4>
+                          <form onSubmit={handleDonateSubmit} className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-mono uppercase text-neutral-gray mb-1">Montant (FCFA)</label>
+                              <input
+                                type="number"
+                                required
+                                value={amount}
+                                onChange={e => setAmount(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded bg-deep-green border border-gold-rich/15 text-pristine-white text-sm"
+                              />
                             </div>
-                          ))}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-mono uppercase text-neutral-gray mb-1">Téléphone</label>
+                                <input
+                                  type="tel"
+                                  required
+                                  value={donatePhone}
+                                  onChange={e => setDonatePhone(e.target.value)}
+                                  placeholder="+225..."
+                                  className="w-full px-4 py-2.5 rounded bg-deep-green border border-gold-rich/15 text-pristine-white text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-mono uppercase text-neutral-gray mb-1">Email</label>
+                                <input
+                                  type="email"
+                                  value={donateEmail}
+                                  onChange={e => setDonateEmail(e.target.value)}
+                                  className="w-full px-4 py-2.5 rounded bg-deep-green border border-gold-rich/15 text-pristine-white text-sm"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={isSubmitting}
+                              className="w-full py-3 bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold uppercase text-xs tracking-widest rounded-lg"
+                            >
+                              {isSubmitting ? 'Traitement...' : `Payer avec Wave - ${parseFloat(amount || '0').toLocaleString()} FCFA`}
+                            </button>
+                          </form>
+                        </div>
+                      ) : (
+                        <div className="p-6 rounded-xl border border-gold-bright/35 bg-deep-green text-center">
+                          <CheckCircle2 className="w-10 h-10 text-gold-bright mx-auto mb-3 animate-bounce" />
+                          <h4 className="font-cinzel text-xl font-bold text-pristine-white">Semence Enregistrée !</h4>
+                          <p className="text-xs text-neutral-gray mt-1">Réf : {receipt?.id}</p>
+                          <div className="my-4 p-4 rounded bg-primary-green/10 font-mono text-xs text-left space-y-1">
+                            <div>Montant : <span className="text-gold-bright font-bold">{receipt?.amount} FCFA</span></div>
+                            <div>Date : {receipt?.date}</div>
+                          </div>
+                          <div className="flex gap-3">
+                            <button onClick={() => window.print()} className="flex-1 py-2 border border-gold-rich/20 text-gold-bright font-mono text-xs uppercase rounded">
+                              <Printer className="w-3.5 h-3.5 inline mr-1" /> Imprimer
+                            </button>
+                            <button onClick={handleDonateReset} className="flex-1 py-2 bg-gold-rich text-deep-green font-mono text-xs uppercase font-bold rounded">
+                              Nouveau Don
+                            </button>
+                          </div>
                         </div>
                       )}
+
+                      <div className="border-t border-gold-rich/10 pt-6">
+                        <h5 className="font-cinzel text-sm font-bold text-pristine-white mb-3">Historique de vos contributions</h5>
+                        {(!user.donationHistory || user.donationHistory.length === 0) ? (
+                          <p className="text-xs text-neutral-gray italic">Aucun don enregistré sur votre profil.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {user.donationHistory.map((don: any) => (
+                              <div key={don.id} className="p-3 rounded bg-deep-green/60 border border-gold-rich/10 flex justify-between items-center font-mono text-[10px] text-neutral-gray">
+                                <span>{don.date}</span>
+                                <span className="text-gold-bright font-bold">{don.amount.toLocaleString()} FCFA</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-
               </motion.div>
             )}
           </AnimatePresence>
         </div>
-
       </div>
     </section>
   );
