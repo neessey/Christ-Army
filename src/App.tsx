@@ -10,6 +10,7 @@ import Events from './components/Events';
 import ExternatRegistrations from './components/ExternatRegistrations';
 import Contact from './components/Contact';
 import AdminDashboard from './components/AdminDashboard';
+import LeaderDashboard from './components/LeaderDashboard';
 import UserAccount from './components/UserAccount';
 import ManagerAccount from './components/ManagerAccount';
 import Footer from './components/Footer';
@@ -332,6 +333,19 @@ export default function App() {
 
           {/* Action Row: Espace Membre / Responsable / Admin Cockpit */}
           <div className="hidden xl:flex items-center gap-3">
+            {user?.role === 'leader' && (
+              <button
+                onClick={() => handleNavigate('leader')}
+                className={`px-3 py-1.5 rounded border text-[10px] font-mono uppercase tracking-wider ${
+                  activeTab === 'leader'
+                    ? 'bg-gold-bright text-deep-green font-bold border-gold-bright'
+                    : 'bg-primary-green/20 border-gold-rich/20 text-gold-bright hover:bg-gold-rich hover:text-deep-green'
+                }`}
+              >
+                Console Leader
+              </button>
+            )}
+
             {user?.role === 'admin' && (
               <button
                 onClick={() => handleNavigate('admin')}
@@ -395,8 +409,10 @@ export default function App() {
                   { id: 'teachings', label: 'Bibliothèque' },
                   { id: 'events', label: 'Programme' },
 { id: 'external-registration', label: 'Inscription' }, 
-                  { id: 'account', label: 'Espace Membre' }
-                ].map(item => (
+{ id: 'external-registration', label: 'Inscription' },
+...(user?.role !== 'leader'
+  ? [{ id: 'account', label: 'Espace Membre' }]
+  : [])                ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => handleNavigate(item.id)}
@@ -407,6 +423,15 @@ export default function App() {
                     {item.label}
                   </button>
                 ))}
+
+                {user?.role === 'leader' && (
+                  <button
+                    onClick={() => handleNavigate('leader')}
+                    className="w-full text-center py-2.5 bg-gold-rich text-deep-green font-bold font-mono text-xs uppercase tracking-widest rounded"
+                  >
+                    Console Leader
+                  </button>
+                )}
 
                 {user?.role === 'admin' && (
                   <button
@@ -480,6 +505,16 @@ export default function App() {
 
             {activeTab === 'manager' && user?.role === 'manager' && (
               <ManagerAccount user={user} />
+            )}
+
+            {activeTab === 'leader' && user?.role === 'leader' && (
+              <LeaderDashboard
+                user={user}
+                onExportExcel={handleExportExcelSimulation}
+                testimonies={testimonies}
+                registeredEvents={events}
+                teachings={teachings}
+              />
             )}
 
             {activeTab === 'admin' && user?.role === 'admin' && (

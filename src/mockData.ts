@@ -132,6 +132,42 @@ export const DEPARTMENTS_DATA: Department[] = [
     ],
     image: '/assets/intercession.jpeg'
   },
+  {
+  id: 'protocole',
+
+  name: 'Protocole',
+
+  iconName: 'ShieldCheck',
+
+  description: 'Accompagner le Prophète avec ordre, discrétion et excellence.',
+
+  longDescription: 'Le département Protocole est un ministère de service dédié à l’accompagnement du Prophète et à la coordination des différents temps liés à son ministère. Dans un esprit d’honneur, de discrétion, de discipline et de respect, ses membres veillent au bon déroulement de ses déplacements, de ses interventions et des différents temps de ministère. Ils travaillent en étroite collaboration avec les responsables concernés afin de faciliter l’organisation, préserver l’ordre et permettre au Prophète de se consacrer pleinement à sa mission.',
+
+  verse: '« Et tout ce que vous faites, faites-le de bon cœur, comme pour le Seigneur et non pour des hommes. » — Colossiens 3:23',
+
+  headOfDepartment: 'Astrid Christwalker',
+
+  requirements: [
+    "Avoir un cœur de serviteur et comprendre l’importance de l’honneur.",
+    "Faire preuve de discrétion, de maturité et de maîtrise de soi.",
+    "Être ponctuel, organisé et attentif aux consignes.",
+    "Savoir travailler en équipe et respecter la confidentialité.",
+    "Être disponible pour accompagner le Prophète lors des temps et activités du ministère."
+  ],
+
+  responsibilities: [
+    "Accompagner le Prophète lors de ses déplacements et de ses différents temps de ministère.",
+    "Veiller à la bonne organisation de ses accès, déplacements et interventions.",
+    "Faciliter la coordination entre le Prophète, les responsables et les différents départements.",
+    "Anticiper les besoins liés aux déplacements et aux temps de ministère avec discrétion.",
+    "Veiller au respect de l’ordre autour du Prophète lors des cultes, événements et manifestations.",
+    "Accueillir et orienter les personnes selon les directives établies.",
+    "Préserver la confidentialité des informations et des échanges liés au ministère.",
+    "Servir avec excellence, respect, vigilance et esprit d’équipe."
+  ],
+
+  image: '/assets/intercession.jpeg'
+},
 ];
 
 export const TEACHINGS_DATA: Teaching[] = [
@@ -155,13 +191,13 @@ export const TEACHINGS_DATA: Teaching[] = [
 export const EVENTS_DATA: Event[] = [
   {
     id: 'ev-1',
-    title: 'AUTEL, AUTEL AINSI  DIT L\'ETERNEL',
-    date: '18-07-2026',
+    title: 'LE SALON DE L\'ADORATION',
+    date: '26-09-2026',
     time: '14h00 - 17h30',
     location: 'Espace Arche, Angré Mahou',
     speaker: 'Prophète Kader Josué Fadika',
     imageUrl: '/assets/event.png',
-    description: 'Le grand rendez-vous du mois de juillet. Une journée dans la présence de Dieu avec prédication incisive, louange prophétique d\'impact, et libération d\'onction. Venez vivre une visitation divine sans précédent.',
+    description: ' L\’apothéose de la Convention des Christwalkers 2026 Le Salon de l\’Adoration est le temps fort qui vient couronner notre convention. Plus qu\’un programme de prière, c\’est un moment consacré à la présence de Dieu, où toute l\’Église se rassemble pour L\’exalter, L\’honorer et Lui offrir une adoration véritable et entière.',
     fullProgram: [
       '14h00 - 14h10 : Debut du programme',
       '14h10 - 14h40 : Louange',
@@ -170,7 +206,7 @@ export const EVENTS_DATA: Event[] = [
       '17h00 - 17h30 : Offrande et prière de fin'
     ],
     isFree: true,
-    countdownTarget: '2026-07-18T21:00:00',
+    countdownTarget: '2026-09-26T14:00:00',
     mapEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15891.139824249052!2d-4.0082!3d5.36!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNcKwMjEnMzYuMCJOIDTCsDAwJzI5LjUiVw!5e0!3m2!1sfr!2sci!4v1625000000000!5m2!1sfr!2sci',
     registeredCount: 0
   },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Send, Globe, MessageSquare, Facebook, Youtube, Instagram } from 'lucide-react';
+import { Flame, Send, Globe, MessageSquare, Facebook, Youtube, Instagram, Music2 } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (section: string) => void;
@@ -44,7 +44,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             <h4 className="font-cinzel text-xs font-bold text-pristine-white tracking-widest uppercase">Ressources</h4>
             <ul className="space-y-2 text-xs">
               <li><button onClick={() => onNavigate('teachings')} className="hover:text-gold-bright transition-colors">Bibliothèque (Enseignements)</button></li>
-              <li><button onClick={() => onNavigate('teachings')} className="hover:text-gold-bright transition-colors">Paroles Inspirées</button></li>
+              <li><button onClick={() => onNavigate('teachings')} className="hover:text-gold-bright transition-colors">Paroles Fortes</button></li>
             </ul>
           </div>
 
@@ -52,9 +52,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             <h4 className="font-cinzel text-xs font-bold text-pristine-white tracking-widest uppercase">Engagement</h4>
             <ul className="space-y-2 text-xs">
               <li><button onClick={() => onNavigate('events')} className="hover:text-gold-bright transition-colors">Événements</button></li>
-              <li><button onClick={() => onNavigate('donations')} className="hover:text-gold-bright transition-colors">Devenir Christwalker</button></li>
-              <li><button onClick={() => onNavigate('donations')} className="hover:text-gold-bright transition-colors">Faire un Don (Semence)</button></li>
-              <li><button onClick={() => onNavigate('account')} className="hover:text-gold-bright transition-colors">Espace Membre</button></li>
+              <li><button onClick={() => onNavigate('external-registration')} className="hover:text-gold-bright transition-colors">Nous rejoindre </button></li>
             </ul>
           </div>
 
@@ -64,9 +62,12 @@ export default function Footer({ onNavigate }: FooterProps) {
               <a href="https://www.instagram.com/christ_army1/" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full bg-primary-green/10 flex items-center justify-center text-gold-rich border border-gold-rich/10 hover:bg-gold-rich hover:text-deep-green transition-all">
                 <Instagram className="w-4 h-4" />
               </a>
+              <a href="https://www.tiktok.com/@christ.army1/" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full bg-primary-green/10 flex items-center justify-center text-gold-rich border border-gold-rich/10 hover:bg-gold-rich hover:text-deep-green transition-all">
+                <Music2 className="w-4 h-4" />
+              </a>
             </div>
             <p className="text-[10px] text-neutral-gray font-light">
-              Suivez nos cultes et retrouvez de nombreuses capsules spirituelles en direct de nos comptes officiels.
+              Suivez nos programme en direct et retrouvez de nombreuses pphotos et videos sur nos comptes officiels.
             </p>
           </div>
 

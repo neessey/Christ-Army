@@ -3,7 +3,7 @@ export interface User {
   email: string;
   name: string;
   phone?: string;
-  role: 'user' | 'manager' | 'admin';
+  role: 'user' | 'manager' | 'admin' | 'leader';
   managedDepartmentId?: string; // renseigné uniquement pour role === 'manager'
   favorites: string[]; // teaching or video IDs
   eventsRegistered: string[]; // event IDs

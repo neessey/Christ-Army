@@ -3,6 +3,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   getDoc,
   getDocs,
   onSnapshot,
@@ -314,6 +315,21 @@ export function subscribeToDeptMembers(
   );
 }
 
+/** Abonnement temps réel à TOUTES les inscriptions de département, tous départements confondus (vue Leader). */
+export function subscribeToAllDeptInscriptions(
+  callback: (members: DeptInscriptionData[]) => void
+): Unsubscribe {
+  return onSnapshot(
+    collection(db, 'inscriptions_departements'),
+    snapshot => {
+      const list: DeptInscriptionData[] = [];
+      snapshot.forEach(doc => list.push(doc.data() as DeptInscriptionData));
+      callback(list);
+    },
+    error => console.error('Erreur d\'écoute globale des inscriptions:', error)
+  );
+}
+
 // ============================================================
 // 3. Inscription Événement
 // ============================================================
@@ -438,7 +454,98 @@ export function subscribeToGlobalStats(callback: (stats: GlobalStats) => void): 
 }
 
 // ============================================================
-// 5. GESTION DES DONS / COTISATIONS
+// 5. FEUILLES DE PRÉSENCE (par département, visibles en temps réel par le Leader)
+// ============================================================
+
+export interface AttendanceSessionData {
+  id: string;
+  departmentId: string;
+  departmentName: string;
+  title: string;
+  date: string;
+  presentMemberIds: string[];
+  totalMembers: number;
+  createdAt?: unknown;
+}
+
+/** Crée une nouvelle session de présence pour un département. */
+export async function saveAttendanceSession(session: AttendanceSessionData) {
+  const path = `attendance_sessions/${session.id}`;
+  try {
+    const docRef = doc(db, 'attendance_sessions', session.id);
+    await setDoc(docRef, { ...session, createdAt: serverTimestamp() });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/** Coche / décoche un membre comme présent sur une session donnée. */
+export async function toggleAttendancePresence(sessionId: string, memberId: string, isCurrentlyPresent: boolean) {
+  const path = `attendance_sessions/${sessionId}`;
+  try {
+    await updateDoc(doc(db, 'attendance_sessions', sessionId), {
+      presentMemberIds: isCurrentlyPresent ? arrayRemove(memberId) : arrayUnion(memberId),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+/** Met à jour le nombre total de membres rattachés à une session (ex: nouveaux inscrits). */
+export async function updateAttendanceTotalMembers(sessionId: string, totalMembers: number) {
+  const path = `attendance_sessions/${sessionId}`;
+  try {
+    await updateDoc(doc(db, 'attendance_sessions', sessionId), { totalMembers });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function deleteAttendanceSession(sessionId: string) {
+  const path = `attendance_sessions/${sessionId}`;
+  try {
+    await deleteDoc(doc(db, 'attendance_sessions', sessionId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+/** Abonnement temps réel aux sessions de présence d'UN département (vue Manager). */
+export function subscribeToDeptAttendance(
+  departmentId: string,
+  callback: (sessions: AttendanceSessionData[]) => void
+): Unsubscribe {
+  const q = query(collection(db, 'attendance_sessions'), where('departmentId', '==', departmentId));
+  return onSnapshot(
+    q,
+    snapshot => {
+      const list: AttendanceSessionData[] = [];
+      snapshot.forEach(doc => list.push(doc.data() as AttendanceSessionData));
+      list.sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+      callback(list);
+    },
+    error => console.error('Erreur d\'écoute des présences du département:', error)
+  );
+}
+
+/** Abonnement temps réel à TOUTES les sessions de présence, tous départements confondus (vue Leader). */
+export function subscribeToAllAttendance(
+  callback: (sessions: AttendanceSessionData[]) => void
+): Unsubscribe {
+  return onSnapshot(
+    collection(db, 'attendance_sessions'),
+    snapshot => {
+      const list: AttendanceSessionData[] = [];
+      snapshot.forEach(doc => list.push(doc.data() as AttendanceSessionData));
+      list.sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+      callback(list);
+    },
+    error => console.error('Erreur d\'écoute globale des présences:', error)
+  );
+}
+
+// ============================================================
+// 6. GESTION DES DONS / COTISATIONS
 // ============================================================
 
 export interface DonationData {
