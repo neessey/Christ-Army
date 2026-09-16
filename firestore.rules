@@ -1,18 +1,171 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return signedIn() && myProfile().data.role == "admin";
+    }
+
+    function isLeader() {
+      return signedIn() && myProfile().data.role == "leader";
+    }
+
+    function isManager() {
+      return signedIn() && myProfile().data.role == "manager";
+    }
+
+    function managesDepartment(departmentId) {
+      return isManager()
+        && myProfile().data.managedDepartmentId == departmentId;
+    }
+
+    // =====================================================
+    // PROFILS MEMBRES
+    // =====================================================
+
+    match /users/{userId} {
+      // Un visiteur peut créer uniquement son propre profil avec le rôle user.
+      // Les rôles admin/leader/manager sont attribués exclusivement par un admin.
+      allow create: if
+        (signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.role == "user")
+        || isAdmin();
+
+      allow read: if
+        (signedIn() && request.auth.uid == userId)
+        || isAdmin()
+        || isLeader()
+        || (
+          isManager()
+          && resource.data.departmentId == myProfile().data.managedDepartmentId
+        )
+        || (
+          isManager()
+          && resource.data.joinedDepartments is list
+          && myProfile().data.managedDepartmentId in resource.data.joinedDepartments
+        );
+
+      // Un membre ne peut pas s'auto-promouvoir ni changer son département géré.
+      allow update: if
+        (
+          signedIn()
+          && request.auth.uid == userId
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'role',
+            'managedDepartmentId'
+          ])
+        )
+        || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================
+    // DÉPARTEMENTS — SOURCE DE VÉRITÉ
+    // =====================================================
+
+    match /departments/{departmentId} {
+      // Les départements sont affichés sur le site public.
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // =====================================================
+    // ENRÔLEMENTS / MOUVEMENT
+    // =====================================================
+
     match /enrolements/{id} {
-      allow read, create: if true;
-      allow update, delete: if false;
+      allow create: if true;
+      allow read: if
+        isAdmin()
+        || isLeader()
+        || (isManager() && managesDepartment(resource.data.serviceDomain));
+      allow update, delete: if isAdmin();
     }
+
+    // =====================================================
+    // INSCRIPTIONS DÉPARTEMENTS
+    // =====================================================
+
     match /inscriptions_departements/{id} {
-      allow read, create: if true;
-      allow update, delete: if false;
+      allow create: if true;
+      allow read: if
+        isAdmin()
+        || isLeader()
+        || (isManager() && managesDepartment(resource.data.departmentId));
+      allow update, delete: if isAdmin();
     }
+
+    // =====================================================
+    // INSCRIPTIONS ÉVÉNEMENTS
+    // =====================================================
+
     match /inscriptions_evenements/{id} {
-      allow read, create: if true;
-      allow update, delete: if false;
+      allow create: if true;
+      allow read: if isAdmin() || isLeader();
+      allow update, delete: if isAdmin();
     }
+
+    // =====================================================
+    // DONS
+    // =====================================================
+
+    match /donations/{donationId} {
+      // Un donateur peut déposer un don. La consultation est réservée
+      // aux espaces de pilotage.
+      allow create: if true;
+      allow read: if isAdmin() || isLeader();
+      allow update, delete: if isAdmin();
+    }
+
+    // =====================================================
+    // STATISTIQUES GLOBALES
+    // =====================================================
+
+    match /global_stats/{document} {
+      allow read: if isAdmin() || isLeader();
+      allow write: if isAdmin();
+    }
+
+    // =====================================================
+    // FEUILLES DE PRÉSENCE
+    // =====================================================
+
+    match /attendance_sessions/{sessionId} {
+      allow create: if isAdmin() || isLeader() || isManager();
+      allow read: if
+        isAdmin()
+        || isLeader()
+        || (isManager() && managesDepartment(resource.data.departmentId));
+      allow update, delete: if
+        isAdmin()
+        || isLeader()
+        || (isManager() && managesDepartment(resource.data.departmentId));
+    }
+
+    // =====================================================
+    // INSCRIPTIONS EXTERNES
+    // =====================================================
+
+    match /external_registrations/{document} {
+      allow create: if true;
+      allow read, update, delete: if signedIn() && (isAdmin() || isLeader());
+    }
+
+    // =====================================================
+    // TOUT LE RESTE
+    // =====================================================
+
     match /{document=**} {
       allow read, write: if false;
     }

@@ -24,11 +24,11 @@ import {
   ClipboardList,
 } from 'lucide-react';
 
-import { DEPARTMENTS_DATA } from '../mockData';
-import { User as UserType } from '../types';
+import { User as UserType, Department } from '../types';
 
 import {
   subscribeToDeptMembers,
+  subscribeToDepartments,
   DeptInscriptionData,
   subscribeToDeptAttendance,
   saveAttendanceSession,
@@ -61,9 +61,7 @@ const NOTIFICATIONS_API_URL = (
 export default function ManagerAccount({ user }: ManagerAccountProps) {
   const departmentId = user.managedDepartmentId;
 
-  const department = DEPARTMENTS_DATA.find(
-    d => d.id === departmentId
-  );
+  const [department, setDepartment] = useState<Department | null>(null);
 
   const [members, setMembers] = useState<DeptInscriptionData[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
@@ -135,6 +133,17 @@ export default function ManagerAccount({ user }: ManagerAccountProps) {
   const [isSending, setIsSending] = useState(false);
   const [sentOk, setSentOk] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  // ---------------------------------------------------------
+  // DÉPARTEMENT — FIRESTORE
+  // ---------------------------------------------------------
+
+  useEffect(() => {
+    const unsubscribe = subscribeToDepartments(list => {
+      setDepartment(list.find(d => d.id === departmentId) ?? null);
+    });
+    return () => unsubscribe();
+  }, [departmentId]);
 
   // ---------------------------------------------------------
   // MEMBRES — FIRESTORE
@@ -274,7 +283,7 @@ export default function ManagerAccount({ user }: ManagerAccountProps) {
     const newSession: AttendanceSessionData = {
       id: `sess_${Date.now()}`,
       departmentId,
-      departmentName: department.name,
+      departmentName: department?.name ?? departmentId,
       date: new Date().toLocaleDateString('fr-FR'),
       title: newSessionTitle.trim(),
       presentMemberIds: [],
@@ -598,7 +607,7 @@ export default function ManagerAccount({ user }: ManagerAccountProps) {
                   </p>
 
                   <p className="truncate text-[10px] text-neutral-gray">
-                    {department.name}
+                    {department?.name ?? 'Département'}
                   </p>
                 </div>
 
@@ -743,7 +752,7 @@ export default function ManagerAccount({ user }: ManagerAccountProps) {
                 </p>
 
                 <h1 className="font-cinzel text-lg font-bold sm:text-xl">
-                  {department.name}
+                  {department?.name ?? 'Département'}
                 </h1>
               </div>
 
@@ -1867,7 +1876,7 @@ export default function ManagerAccount({ user }: ManagerAccountProps) {
                                     .value
                                 )
                               }
-                              placeholder={`Ex: Réunion du département ${department.name}`}
+                              placeholder={`Ex: Réunion du département ${department?.name ?? 'Département'}`}
                               className="w-full rounded-xl border border-gold-rich/15 bg-primary-green/10 px-4 py-3 text-sm outline-none transition focus:border-gold-rich/50"
                             />
 

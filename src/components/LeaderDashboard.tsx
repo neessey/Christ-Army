@@ -36,19 +36,19 @@ import {
   Phone,
   Filter,
 } from 'lucide-react';
-import { DEPARTMENTS_DATA, MOCK_ADMIN_METRICS } from '../mockData';
-import { User as UserType } from '../types';
+
+import { User as UserType, Department } from '../types';
 import { logoutMember } from '../lib/authService';
 import {
   subscribeToGlobalStats,
+  subscribeToDepartments,
+  subscribeToAllMembers,
   GlobalStats,
   subscribeToDonations,
   updateDonationStatus,
   DonationData,
   subscribeToAllAttendance,
   AttendanceSessionData,
-  subscribeToAllDeptInscriptions,
-  DeptInscriptionData,
 } from '../lib/firestoreService';
 
 interface LeaderDashboardProps {
@@ -80,6 +80,7 @@ export default function LeaderDashboard({
 }: LeaderDashboardProps) {
   const [activeTab, setActiveTab] = useState<LeaderTab>('apercu');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   // ---- Données temps réel : statistiques globales ----
   const [stats, setStats] = useState<GlobalStats>({
@@ -109,7 +110,7 @@ export default function LeaderDashboard({
   const [attendanceDeptFilter, setAttendanceDeptFilter] = useState<string>('tous');
 
   // ---- Données temps réel : membres inscrits par département ----
-  const [allMembers, setAllMembers] = useState<DeptInscriptionData[]>([]);
+  const [allMembers, setAllMembers] = useState<UserType[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberDeptFilter, setMemberDeptFilter] = useState<string>('tous');
@@ -118,7 +119,7 @@ export default function LeaderDashboard({
   const [notifTitle, setNotifTitle] = useState('');
   const [notifBody, setNotifBody] = useState('');
   const [notifAudience, setNotifAudience] = useState<NotifAudience>('all-members');
-  const [notifDeptId, setNotifDeptId] = useState<string>(DEPARTMENTS_DATA[0]?.id ?? '');
+  const [notifDeptId, setNotifDeptId] = useState<string>('');
   const [isSendingNotif, setIsSendingNotif] = useState(false);
   const [notifSent, setNotifSent] = useState(false);
   const [notifError, setNotifError] = useState<string | null>(null);
@@ -126,6 +127,17 @@ export default function LeaderDashboard({
   // ---- Export ----
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToDepartments(setDepartments);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!notifDeptId && departments[0]?.id) {
+      setNotifDeptId(departments[0].id);
+    }
+  }, [departments, notifDeptId]);
 
   useEffect(() => {
     setStatsLoading(true);
@@ -156,7 +168,7 @@ export default function LeaderDashboard({
 
   useEffect(() => {
     setMembersLoading(true);
-    const unsubscribe = subscribeToAllDeptInscriptions(list => {
+    const unsubscribe = subscribeToAllMembers(list => {
       setAllMembers(list);
       setMembersLoading(false);
     });
@@ -235,17 +247,32 @@ export default function LeaderDashboard({
   }, [allAttendance]);
 
   // ---------------- Dérivés : Membres ----------------
+  const formatMemberDate = (value: unknown) => {
+    if (!value) return 'Date inconnue';
+    const timestamp = value as { seconds?: number };
+    if (typeof timestamp === 'object' && timestamp?.seconds) {
+      return new Date(timestamp.seconds * 1000).toLocaleDateString('fr-FR');
+    }
+    const date = new Date(String(value));
+    return Number.isNaN(date.getTime()) ? 'Date inconnue' : date.toLocaleDateString('fr-FR');
+  };
+
   const filteredMembers = allMembers.filter(m => {
-    const matchesDept = memberDeptFilter === 'tous' ? true : m.departmentId === memberDeptFilter;
+    const matchesDept =
+      memberDeptFilter === 'tous'
+        ? true
+        : (m.joinedDepartments || []).includes(memberDeptFilter);
+
     const term = memberSearch.toLowerCase();
     const matchesSearch = !term
       || m.name?.toLowerCase().includes(term)
       || m.email?.toLowerCase().includes(term)
       || m.phone?.includes(memberSearch);
+
     return matchesDept && matchesSearch;
   });
 
-  const getDeptName = (id: string) => DEPARTMENTS_DATA.find((d: any) => d.id === id)?.name || id;
+  const getDeptName = (id: string) => departments.find(d => d.id === id)?.name || id;
 
   // ---------------- Activité récente combinée (Aperçu) ----------------
   const recentActivity = useMemo(() => {
@@ -579,7 +606,7 @@ export default function LeaderDashboard({
                           className="rounded-xl border border-gold-rich/15 bg-deep-green px-4 py-3 text-sm text-gold-bright outline-none sm:w-64"
                         >
                           <option value="tous">Tous les départements</option>
-                          {DEPARTMENTS_DATA.map((d: any) => (
+                          {departments.map((d: Department) => (
                             <option key={d.id} value={d.id}>{d.name}</option>
                           ))}
                         </select>
@@ -616,10 +643,10 @@ export default function LeaderDashboard({
                                     </div>
                                   </td>
                                   <td className="px-4 py-4">
-                                    <span className="rounded-md bg-gold-rich/10 px-2 py-1 text-[9px] font-mono font-bold uppercase text-gold-bright">{getDeptName(m.departmentId)}</span>
+                                    <span className="rounded-md bg-gold-rich/10 px-2 py-1 text-[9px] font-mono font-bold uppercase text-gold-bright">{(m.joinedDepartments || []).map(getDeptName).join(' · ') || 'Aucun'}</span>
                                   </td>
-                                  <td className="px-4 py-4 text-[11px] text-neutral-gray">{m.dateJoined}</td>
-                                  <td className="px-4 py-4 text-[11px] text-neutral-gray">{m.country}</td>
+                                  <td className="px-4 py-4 text-[11px] text-neutral-gray">{formatMemberDate(m.createdAt)}</td>
+                                  <td className="px-4 py-4 text-[11px] text-neutral-gray">{(m as any).country || 'Non renseigné'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -704,7 +731,7 @@ export default function LeaderDashboard({
                           className="rounded-xl border border-gold-rich/15 bg-deep-green px-4 py-2.5 text-xs text-gold-bright outline-none sm:w-64"
                         >
                           <option value="tous">Tous les départements</option>
-                          {DEPARTMENTS_DATA.map((d: any) => (
+                          {departments.map((d: Department) => (
                             <option key={d.id} value={d.id}>{d.name}</option>
                           ))}
                         </select>
@@ -929,7 +956,7 @@ export default function LeaderDashboard({
                             onChange={e => setNotifDeptId(e.target.value)}
                             className="mt-3 w-full rounded-xl border border-gold-rich/15 bg-deep-green px-4 py-3 text-sm text-gold-bright outline-none"
                           >
-                            {DEPARTMENTS_DATA.map((d: any) => (
+                            {departments.map((d: Department) => (
                               <option key={d.id} value={d.id}>{d.name}</option>
                             ))}
                           </select>
@@ -979,7 +1006,7 @@ export default function LeaderDashboard({
                           <h4 className="font-cinzel text-sm font-bold mb-3">Résumé des Données</h4>
                           <div className="space-y-2">
                             <SummaryRow label="Membres" value={stats.totalMembers.toLocaleString()} />
-                            <SummaryRow label="Départements" value={MOCK_ADMIN_METRICS.totalDepartments.toString()} />
+                            <SummaryRow label="Départements" value={stats.totalDepartments.toString()} />
                             <SummaryRow label="Témoignages" value={testimonies.length.toString()} />
                             <SummaryRow label="Enseignements" value={teachings.length.toString()} />
                             <SummaryRow label="Événements" value={registeredEvents.length.toString()} />

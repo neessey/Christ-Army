@@ -53,25 +53,7 @@ export default function Teachings({
   const [testimonyCategory, setTestimonyCategory] = useState<'Miracle' | 'Guérison' | 'Conversion' | 'Restauration'>('Miracle');
   const [testimonyContent, setTestimonyContent] = useState('');
 
-  // ------------------------------------------
-  // LECTURE AUDIO LOGIC
-  // ------------------------------------------
-  const handlePlayAudio = (teaching: Teaching) => {
-    if (playingId === teaching.id) {
-      audioPlayer?.pause();
-      setPlayingId(null);
-    } else {
-      if (audioPlayer) {
-        audioPlayer.pause();
-      }
-      const newPlayer = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3');
-      newPlayer.play().catch(err => console.log('Audio blocked', err));
-      newPlayer.volume = 0.2;
-      newPlayer.addEventListener('ended', () => setPlayingId(null));
-      setAudioPlayer(newPlayer);
-      setPlayingId(teaching.id);
-    }
-  };
+
 
   const handleDownloadSimulation = (teaching: Teaching) => {
     const element = document.createElement('a');
@@ -366,22 +348,7 @@ export default function Teachings({
     <span>Voir</span>
   </button>
 )}
-                    {teaching.category === "audio" && (
-
-                      <button
-                        onClick={() => handlePlayAudio(teaching)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded bg-primary-green/20 text-gold-bright border border-gold-rich/10 font-mono text-[10px]"
-                      >
-
-                        <Play className="w-3.5 h-3.5 fill-current"/>
-
-                        <span>
-                          Écouter
-                        </span>
-
-                      </button>
-
-                    )}
+                   
 
 
 

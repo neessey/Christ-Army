@@ -9,34 +9,9 @@ interface HeroProps {
 export default function Hero({ onNavigate }: HeroProps) {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [currentTimeString, setCurrentTimeString] = useState('');
-  const [audio] = useState(() => {
-    // Elegant background instrumental piano
-    const a = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
-    a.loop = true;
-    a.volume = 0.15;
-    return a;
-  });
+ 
 
-  useEffect(() => {
-    // Update real time clock (UTC style or local Ivory Coast)
-    const timer = setInterval(() => {
-      const now = new Date();
-      setCurrentTimeString(now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' GMT');
-    }, 1000);
-    return () => {
-      clearInterval(timer);
-      audio.pause();
-    };
-  }, [audio]);
 
-  const toggleAudio = () => {
-    if (isPlayingAudio) {
-      audio.pause();
-    } else {
-      audio.play().catch(err => console.log('Audio playback prevented by browser autoplay policy', err));
-    }
-    setIsPlayingAudio(!isPlayingAudio);
-  };
 
   return (
     <section id="hero" className="relative min-h-screen flex flex-col justify-between overflow-hidden bg-deep-green">

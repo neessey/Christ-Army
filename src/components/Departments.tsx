@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Flame, Compass, Music, Share2, Sliders, Shield, BookOpen, Video, Activity, ArrowLeft, Send, CheckCircle } from 'lucide-react';
-import { DEPARTMENTS_DATA } from '../mockData';
 import { Department } from '../types';
+import { subscribeToDepartments } from '../lib/firestoreService';
 
 // Map icon name to Lucide Icon
 const iconMap: Record<string, React.ComponentType<any>> = {
@@ -26,6 +26,8 @@ export default function Departments({ onJoinDepartment, joinedDepartmentIds }: D
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
   const [showJoinModal, setShowJoinModal] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(true);
 
   // Form states
   const [name, setName] = useState('');
@@ -35,7 +37,15 @@ export default function Departments({ onJoinDepartment, joinedDepartmentIds }: D
   const [motivation, setMotivation] = useState('');
   const [availability, setAvailability] = useState('Semaine et Week-end');
 
-  const selectedDept = DEPARTMENTS_DATA.find(d => d.id === selectedDeptId);
+  useEffect(() => {
+    const unsubscribe = subscribeToDepartments(list => {
+      setDepartments(list);
+      setDepartmentsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const selectedDept = departments.find(d => d.id === selectedDeptId);
 
   const handleJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +99,15 @@ export default function Departments({ onJoinDepartment, joinedDepartmentIds }: D
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {DEPARTMENTS_DATA.map((dept, idx) => {
+                {departmentsLoading ? (
+                  <div className="md:col-span-2 lg:col-span-3 py-16 text-center text-xs font-mono uppercase tracking-widest text-neutral-gray">
+                    Chargement des départements...
+                  </div>
+                ) : departments.length === 0 ? (
+                  <div className="md:col-span-2 lg:col-span-3 py-16 text-center text-sm text-neutral-gray">
+                    Aucun département n'est actuellement disponible.
+                  </div>
+                ) : departments.map((dept, idx) => {
                   const IconComponent = iconMap[dept.iconName] || Shield;
                   const isJoined = joinedDepartmentIds.includes(dept.id);
 

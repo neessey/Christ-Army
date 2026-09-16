@@ -21,9 +21,6 @@ import {
   saveEnrolement,
   saveDeptInscription,
   saveEventInscription,
-  getEnrolements,
-  getDeptInscriptions,
-  getEventInscriptions,
   toggleFavoriteTeaching,
   registerUserToEvent,
   addUserToDepartment,
@@ -32,6 +29,7 @@ import {
   EnrolementData,
   DeptInscriptionData,
   EventInscriptionData,
+  ensureDepartmentsSeeded,
 } from './lib/firestoreService';
 import { subscribeToAuthChanges } from './lib/authService';
 import { subscribeMemberToDepartmentTopic } from './lib/messaging';
@@ -49,7 +47,7 @@ export default function App() {
 
   const [testimonies, setTestimonies] = useState<Testimony[]>(() => {
     const saved = localStorage.getItem('ca_testimonies');
-    return saved ? JSON.parse(saved) : TESTIMONIES_DATA;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [teachings, setTeachings] = useState<Teaching[]>(() => {
@@ -66,9 +64,6 @@ export default function App() {
     const saved = localStorage.getItem('ca_joined_count');
     return saved ? Number(saved) : 10450;
   });
-  const [dbEnrolements, setDbEnrolements] = useState<EnrolementData[]>([]);
-  const [dbDeptInscriptions, setDbDeptInscriptions] = useState<DeptInscriptionData[]>([]);
-  const [dbEventInscriptions, setDbEventInscriptions] = useState<EventInscriptionData[]>([]);
 
   // --- Espace Membre : écoute de la session Firebase Auth ---
   useEffect(() => {
@@ -96,6 +91,15 @@ export default function App() {
     };
   }, []);
 
+  // --- Référentiel départements : initialisation Firestore réservée à l'admin ---
+  useEffect(() => {
+    if (authReady && user?.role === 'admin') {
+      ensureDepartmentsSeeded().catch(err => {
+        console.error('Erreur d’initialisation des départements Firestore:', err);
+      });
+    }
+  }, [authReady, user?.role]);
+
   // --- PWA : enregistrement du service worker (installabilité + FCM) ---
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -105,26 +109,6 @@ export default function App() {
     }
   }, []);
 
-  // Load Firestore data on mount
-  useEffect(() => {
-    async function loadFirestoreData() {
-      try {
-        const enrolements = await getEnrolements();
-        const depts = await getDeptInscriptions();
-        const evs = await getEventInscriptions();
-
-        setDbEnrolements(enrolements);
-        setDbDeptInscriptions(depts);
-        setDbEventInscriptions(evs);
-
-        // Sum the initial base 10450 with real-time enrollees
-        setJoinedCount(10450 + enrolements.length);
-      } catch (err) {
-          console.error('Erreur de chargement Firestore initial:', err);
-      }
-    }
-    loadFirestoreData();
-  }, []);
 
   // Sync to localStorage (contenu public uniquement — le profil membre vit dans Firestore)
   useEffect(() => {
@@ -171,8 +155,6 @@ export default function App() {
     };
 
     await saveEventInscription(newReg);
-    setDbEventInscriptions(prev => [...prev, newReg]);
-
     const alreadyRegistered = user?.eventsRegistered.includes(eventId) ?? false;
 
     if (user && !alreadyRegistered) {
@@ -206,8 +188,6 @@ export default function App() {
     };
 
     await saveDeptInscription(newInscription);
-    setDbDeptInscriptions(prev => [...prev, newInscription]);
-
     if (user) {
       await addUserToDepartment(user.id, departmentId);
       // Si les notifications sont déjà actives, on abonne aussi cet appareil
@@ -224,8 +204,6 @@ export default function App() {
     setJoinedCount(prev => prev + 1);
 
     await saveEnrolement(memberData);
-    setDbEnrolements(prev => [...prev, memberData]);
-
     if (user) {
       await addUserToDepartment(user.id, memberData.serviceDomain);
     }
@@ -372,15 +350,19 @@ export default function App() {
               </button>
             )}
 
-            <button
-              onClick={() => handleNavigate('account')}
-              className={`p-2 rounded-full border border-gold-rich/20 flex items-center justify-center transition-all ${
-                activeTab === 'account' ? 'bg-gold-rich text-deep-green' : 'bg-primary-green/10 text-gold-rich hover:bg-primary-green/20'
-              }`}
-              title="Mon Compte"
-            >
-              <User className="w-4.5 h-4.5" />
-            </button>
+          
+  <button
+    onClick={() => handleNavigate('account')}
+    className={`p-2 rounded-full border border-gold-rich/20 flex items-center justify-center transition-all ${
+      activeTab === 'account'
+        ? 'bg-gold-rich text-deep-green'
+        : 'bg-primary-green/10 text-gold-rich hover:bg-primary-green/20'
+    }`}
+    title="Mon Compte"
+  >
+    <User className="w-4.5 h-4.5" />
+  </button>
+
           </div>
 
           {/* Mobile Drawer Toggle */}
@@ -409,7 +391,6 @@ export default function App() {
                   { id: 'teachings', label: 'Bibliothèque' },
                   { id: 'events', label: 'Programme' },
 { id: 'external-registration', label: 'Inscription' }, 
-{ id: 'external-registration', label: 'Inscription' },
 ...(user?.role !== 'leader'
   ? [{ id: 'account', label: 'Espace Membre' }]
   : [])                ].map(item => (

@@ -15,8 +15,9 @@ import {
   serverTimestamp,
   type Unsubscribe,
 } from 'firebase/firestore';
-import { db } from './firebase';
-import type { User } from '../types';
+import { db, auth } from './firebase';
+import type { User, Department } from '../types';
+import { DEPARTMENTS_DATA } from '../mockData';
 
 export enum OperationType {
   CREATE = 'create',
@@ -48,12 +49,15 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: null,
-      email: null,
-      emailVerified: false,
-      isAnonymous: false,
-      tenantId: null,
-      providerInfo: []
+      userId: auth.currentUser?.uid ?? null,
+      email: auth.currentUser?.email ?? null,
+      emailVerified: auth.currentUser?.emailVerified ?? false,
+      isAnonymous: auth.currentUser?.isAnonymous ?? false,
+      tenantId: auth.currentUser?.tenantId ?? null,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email ?? null,
+      })) ?? []
     },
     operationType,
     path
@@ -366,6 +370,82 @@ export async function getEventInscriptions(): Promise<EventInscriptionData[]> {
   }
 }
 
+
+// ============================================================
+// 4. RÉFÉRENTIEL DÉPARTEMENTS — Firestore
+// ============================================================
+
+/**
+ * Les départements sont la source de vérité du dashboard.
+ * La lecture est publique afin que le site puisse afficher les départements.
+ * L'écriture reste réservée à l'administrateur via les règles Firestore.
+ */
+export function subscribeToAllMembers(
+  callback: (members: User[]) => void
+): Unsubscribe {
+  return onSnapshot(
+    collection(db, 'users'),
+    snapshot => {
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as User));
+      list.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+      callback(list);
+    },
+    error => console.error('Erreur d’écoute des membres:', error)
+  );
+}
+
+export function subscribeToDepartments(
+  callback: (departments: Department[]) => void
+): Unsubscribe {
+  return onSnapshot(
+    collection(db, 'departments'),
+    snapshot => {
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Department));
+      list.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+      callback(list);
+    },
+    error => console.error('Erreur d’écoute des départements:', error)
+  );
+}
+
+/** Lit les départements une seule fois. */
+export async function getDepartments(): Promise<Department[]> {
+  try {
+    const snapshot = await getDocs(collection(db, 'departments'));
+    return snapshot.docs
+      .map(d => ({ id: d.id, ...d.data() } as Department))
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, 'departments');
+    return [];
+  }
+}
+
+/**
+ * Initialise les départements Firestore à partir du référentiel du projet,
+ * uniquement lorsqu'un document n'existe pas encore.
+ * Cela évite d'écraser des modifications faites depuis le dashboard.
+ */
+export async function ensureDepartmentsSeeded(): Promise<void> {
+  try {
+    const existing = await getDocs(collection(db, 'departments'));
+    const existingIds = new Set(existing.docs.map(d => d.id));
+
+    await Promise.all(
+      DEPARTMENTS_DATA
+        .filter(department => !existingIds.has(department.id))
+        .map(department =>
+          setDoc(doc(db, 'departments', department.id), {
+            ...department,
+            updatedAt: serverTimestamp(),
+          })
+        )
+    );
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, 'departments');
+  }
+}
+
 // ============================================================
 // 4. STATISTIQUES GLOBALES
 // ============================================================
@@ -395,62 +475,166 @@ export interface GlobalStats {
   fundGrowth: number;
 }
 
-export function subscribeToGlobalStats(callback: (stats: GlobalStats) => void): Unsubscribe {
+export function subscribeToGlobalStats(
+  callback: (stats: GlobalStats) => void
+): Unsubscribe {
   const unsubscribers: Unsubscribe[] = [];
-  let currentStats: GlobalStats = {
-    totalMembers: 0, totalDepartments: 0, totalDiaspora: 0, solidarityFund: 0,
-    countriesMap: [], departmentsList: [], membersGrowth: 0, departmentsGrowth: 0,
-    diasporaGrowth: 0, fundGrowth: 0
-  };
 
   let membersCache: any[] = [];
   let departmentsCache: any[] = [];
-  let donationsCache: any[] = [];
 
   const updateStats = () => {
-    currentStats.totalMembers = membersCache.length;
-    const diasporaMembers = membersCache.filter(m => m.country && m.country !== 'Côte d\'Ivoire');
-    currentStats.totalDiaspora = diasporaMembers.length;
+    // =========================
+    // MEMBRES
+    // =========================
+    const totalMembers = membersCache.length;
 
+    const diasporaMembers = membersCache.filter(
+      member =>
+        member.country &&
+        member.country.trim().toLowerCase() !== "côte d'ivoire" &&
+        member.country.trim().toLowerCase() !== "cote d'ivoire"
+    );
+
+    const totalDiaspora = diasporaMembers.length;
+
+    // =========================
+    // PAYS
+    // =========================
     const countryMap = new Map<string, number>();
-    membersCache.forEach(m => {
-      const country = m.country || 'Non spécifié';
-      countryMap.set(country, (countryMap.get(country) || 0) + 1);
+
+    membersCache.forEach(member => {
+      const country = member.country?.trim() || "Non spécifié";
+
+      countryMap.set(
+        country,
+        (countryMap.get(country) || 0) + 1
+      );
     });
 
-    const total = membersCache.length || 1;
-    currentStats.countriesMap = Array.from(countryMap.entries())
-      .map(([country, count]) => ({ country, count, percentage: Math.round((count / total) * 100) }))
+    const countriesMap = Array.from(countryMap.entries())
+      .map(([country, count]) => ({
+        country,
+        count,
+        percentage:
+          totalMembers > 0
+            ? Math.round((count / totalMembers) * 100)
+            : 0,
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    currentStats.totalDepartments = departmentsCache.length;
-    currentStats.departmentsList = departmentsCache.map(dept => ({
-      name: dept.name || 'Département sans nom',
-      leader: dept.leader || 'Non assigné',
-      members: dept.members?.length || 0
+    // =========================
+    // DÉPARTEMENTS
+    // =========================
+    const totalDepartments = departmentsCache.length;
+
+    const departmentsList = departmentsCache.map(department => ({
+      name: department.name || "Département sans nom",
+      leader: department.leader || "Non assigné",
+      members: Array.isArray(department.members)
+        ? department.members.length
+        : 0,
     }));
 
-    currentStats.solidarityFund = donationsCache.reduce((total, d) => total + (d.amount || 0), 0);
-    callback(currentStats);
+    // =========================
+    // DONS
+    // donationHistory est dans users
+    // =========================
+    let solidarityFund = 0;
+
+    membersCache.forEach(member => {
+      const history = Array.isArray(member.donationHistory)
+        ? member.donationHistory
+        : [];
+
+      history.forEach((donation: any) => {
+        const status = donation.status;
+
+        // On ne comptabilise que les dons confirmés.
+        // Si ton historique ne contient pas de status,
+        // le don est également comptabilisé.
+        if (
+          !status ||
+          status === "Confirmé" ||
+          status === "confirmed" ||
+          status === "CONFIRMED"
+        ) {
+          solidarityFund += Number(donation.amount) || 0;
+        }
+      });
+    });
+
+    callback({
+      totalMembers,
+      totalDepartments,
+      totalDiaspora,
+      solidarityFund,
+      countriesMap,
+      departmentsList,
+
+      // Pas d'historique fiable pour le moment.
+      // On évite donc d'afficher de faux pourcentages.
+      membersGrowth: 0,
+      departmentsGrowth: 0,
+      diasporaGrowth: 0,
+      fundGrowth: 0,
+    });
   };
 
-  unsubscribers.push(onSnapshot(collection(db, 'users'), snap => {
-    membersCache = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    updateStats();
-  }));
+  // =========================
+  // USERS
+  // =========================
+  const unsubscribeUsers = onSnapshot(
+    collection(db, "users"),
+    snapshot => {
+      membersCache = snapshot.docs.map(snapshotDoc => ({
+        id: snapshotDoc.id,
+        ...snapshotDoc.data(),
+      }));
 
-  unsubscribers.push(onSnapshot(collection(db, 'departments'), snap => {
-    departmentsCache = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    updateStats();
-  }));
+      updateStats();
+    },
+    error => {
+      console.error(
+        "Erreur d'écoute des membres :",
+        error
+      );
 
-  unsubscribers.push(onSnapshot(collection(db, 'donations'), snap => {
-    donationsCache = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })).filter((d: any) => d.status === 'Confirmé');
-    updateStats();
-  }));
+      updateStats();
+    }
+  );
 
-  return () => unsubscribers.forEach(unsub => unsub());
+  unsubscribers.push(unsubscribeUsers);
+
+  // =========================
+  // DEPARTMENTS
+  // =========================
+  const unsubscribeDepartments = onSnapshot(
+    collection(db, "departments"),
+    snapshot => {
+      departmentsCache = snapshot.docs.map(snapshotDoc => ({
+        id: snapshotDoc.id,
+        ...snapshotDoc.data(),
+      }));
+
+      updateStats();
+    },
+    error => {
+      console.error(
+        "Erreur d'écoute des départements :",
+        error
+      );
+
+      updateStats();
+    }
+  );
+
+  unsubscribers.push(unsubscribeDepartments);
+
+  return () => {
+    unsubscribers.forEach(unsubscribe => unsubscribe());
+  };
 }
 
 // ============================================================
@@ -601,6 +785,166 @@ export async function updateDonationStatus(donationId: string, status: 'Confirm�
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
     throw error;
+  }
+}
+
+// ============================================================
+// 7. GESTION DES ÉVÉNEMENTS
+// ============================================================
+
+export interface FirestoreEvent {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  speaker?: string;
+  imageUrl: string;
+  description: string;
+  fullProgram?: string[];
+  isFree?: boolean;
+  countdownTarget: string;
+  registeredCount?: number;
+  maxCapacity?: number;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+}
+
+/**
+ * Crée un événement dans Firestore.
+ */
+export async function saveEvent(event: FirestoreEvent) {
+  const path = `events/${event.id}`;
+
+  try {
+    await setDoc(doc(db, "events", event.id), {
+      ...event,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log("Événement enregistré dans Firestore :", event.id);
+
+    return event;
+  } catch (error) {
+    handleFirestoreError(
+      error,
+      OperationType.CREATE,
+      path
+    );
+
+    throw error;
+  }
+}
+
+/**
+ * Met à jour un événement.
+ */
+export async function updateEvent(
+  eventId: string,
+  data: Partial<FirestoreEvent>
+) {
+  const path = `events/${eventId}`;
+
+  try {
+    await updateDoc(doc(db, "events", eventId), {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(
+      error,
+      OperationType.UPDATE,
+      path
+    );
+
+    throw error;
+  }
+}
+
+/**
+ * Supprime un événement.
+ */
+export async function deleteEvent(eventId: string) {
+  const path = `events/${eventId}`;
+
+  try {
+    await deleteDoc(doc(db, "events", eventId));
+  } catch (error) {
+    handleFirestoreError(
+      error,
+      OperationType.DELETE,
+      path
+    );
+
+    throw error;
+  }
+}
+
+/**
+ * Écoute tous les événements en temps réel.
+ */
+export function subscribeToEvents(
+  callback: (events: FirestoreEvent[]) => void
+): Unsubscribe {
+  return onSnapshot(
+    collection(db, "events"),
+    snapshot => {
+      const events: FirestoreEvent[] = snapshot.docs.map(
+        snapshotDoc => ({
+          id: snapshotDoc.id,
+          ...(snapshotDoc.data() as Omit<FirestoreEvent, "id">),
+        })
+      );
+
+      events.sort((a, b) => {
+        const dateA = new Date(
+          a.countdownTarget || a.date
+        ).getTime();
+
+        const dateB = new Date(
+          b.countdownTarget || b.date
+        ).getTime();
+
+        return dateA - dateB;
+      });
+
+      callback(events);
+    },
+    error => {
+      console.error(
+        "Erreur d'écoute des événements :",
+        error
+      );
+
+      callback([]);
+    }
+  );
+}
+
+/**
+ * Récupère les événements une seule fois.
+ */
+export async function getEvents(): Promise<FirestoreEvent[]> {
+  const path = "events";
+
+  try {
+    const snapshot = await getDocs(
+      collection(db, "events")
+    );
+
+    return snapshot.docs.map(snapshotDoc => ({
+      id: snapshotDoc.id,
+      ...(snapshotDoc.data() as Omit<FirestoreEvent, "id">),
+    }));
+  } catch (error) {
+    handleFirestoreError(
+      error,
+      OperationType.GET,
+      path
+    );
+
+    return [];
   }
 }
 

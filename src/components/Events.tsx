@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, Clock, MapPin, Users, Award, Map, ArrowRight, Printer, ShieldCheck, Ticket } from 'lucide-react';
-import { EVENTS_DATA } from '../mockData';
+import {
+  subscribeToEvents,
+  type FirestoreEvent,
+} from '../lib/firestoreService';
 import { Event } from '../types';
 
 interface EventsProps {
@@ -10,7 +13,9 @@ interface EventsProps {
 }
 
 export default function Events({ onRegisterEvent, registeredEventIds }: EventsProps) {
-  const [activeEvent, setActiveEvent] = useState<Event>(EVENTS_DATA[0]);
+const [events, setEvents] = useState<FirestoreEvent[]>([]);
+const [activeEvent, setActiveEvent] = useState<FirestoreEvent | null>(null);
+const [loadingEvents, setLoadingEvents] = useState(true);
   const [showFormModal, setShowFormModal] = useState(false);
   const [ticketDetails, setTicketDetails] = useState<any | null>(null);
 
@@ -23,29 +28,93 @@ export default function Events({ onRegisterEvent, registeredEventIds }: EventsPr
   // Countdown timer State
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const difference = +new Date(activeEvent.countdownTarget) - +new Date();
-      let calculatedTime = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+useEffect(() => {
+  if (!activeEvent) {
+    setTimeLeft({
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    });
 
-      if (difference > 0) {
-        calculatedTime = {
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60),
-        };
-      }
-      setTimeLeft(calculatedTime);
+    return;
+  }
+
+  const calculateTimeLeft = () => {
+    const difference =
+      +new Date(activeEvent.countdownTarget) -
+      +new Date();
+
+    let calculatedTime = {
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
     };
 
-    calculateTimeLeft();
-    const interval = setInterval(calculateTimeLeft, 1000);
-    return () => clearInterval(interval);
-  }, [activeEvent]);
+    if (difference > 0) {
+      calculatedTime = {
+        days: Math.floor(
+          difference / (1000 * 60 * 60 * 24)
+        ),
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+        hours: Math.floor(
+          (difference / (1000 * 60 * 60)) % 24
+        ),
+
+        minutes: Math.floor(
+          (difference / (1000 * 60)) % 60
+        ),
+
+        seconds: Math.floor(
+          (difference / 1000) % 60
+        ),
+      };
+    }
+
+    setTimeLeft(calculatedTime);
+  };
+
+  calculateTimeLeft();
+
+  const interval = setInterval(
+    calculateTimeLeft,
+    1000
+  );
+
+  return () => clearInterval(interval);
+}, [activeEvent]);
+
+  useEffect(() => {
+  const unsubscribe = subscribeToEvents(firestoreEvents => {
+    setEvents(firestoreEvents);
+
+    setActiveEvent(currentEvent => {
+      if (!currentEvent) {
+        return firestoreEvents[0] ?? null;
+      }
+
+      return (
+        firestoreEvents.find(
+          event => event.id === currentEvent.id
+        ) ??
+        firestoreEvents[0] ??
+        null
+      );
+    });
+
+    setLoadingEvents(false);
+  });
+
+  return () => unsubscribe();
+}, []);
+
+  const handleRegisterSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault();
+
+    if (!activeEvent) {
+      return;
+    }
 
     onRegisterEvent(activeEvent.id);
 
@@ -76,6 +145,44 @@ export default function Events({ onRegisterEvent, registeredEventIds }: EventsPr
     window.print();
   };
 
+  if (loadingEvents) {
+  return (
+    <section
+      id="events"
+      className="relative py-24 bg-deep-green border-t border-gold-rich/10"
+    >
+      <div className="mx-auto flex min-h-[300px] max-w-7xl items-center justify-center px-6">
+        <div className="flex items-center gap-3 text-neutral-gray">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-gold-rich/20 border-t-gold-bright" />
+          <span className="text-sm">
+            Chargement des événements...
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+if (!activeEvent) {
+  return (
+    <section
+      id="events"
+      className="relative py-24 bg-deep-green border-t border-gold-rich/10"
+    >
+      <div className="mx-auto flex min-h-[300px] max-w-7xl flex-col items-center justify-center px-6 text-center">
+        <Calendar className="mb-4 h-10 w-10 text-gold-rich/40" />
+
+        <h2 className="font-cinzel text-xl font-bold text-white">
+          Aucun événement à venir
+        </h2>
+
+        <p className="mt-2 max-w-md text-sm text-neutral-gray">
+          Les prochains rassemblements seront affichés ici.
+        </p>
+      </div>
+    </section>
+  );
+}
   return (
     <section id="events" className="relative py-24 bg-deep-green border-t border-gold-rich/10">
       <div className="absolute top-1/2 left-1/10 w-[500px] h-[500px] rounded-full bg-primary-green/5 blur-[120px] pointer-events-none" />
@@ -172,7 +279,7 @@ export default function Events({ onRegisterEvent, registeredEventIds }: EventsPr
               <div className="space-y-2">
                 <h4 className="font-cinzel text-xs font-bold text-gold-bright tracking-widest uppercase">Programme complet :</h4>
                 <div className="space-y-1.5 pl-3 border-l-2 border-gold-rich">
-                  {activeEvent.fullProgram.map((prog, i) => (
+                  {(activeEvent.fullProgram ?? []).map((prog, i) => (
                     <p key={i} className="text-xs text-neutral-gray font-light">
                       {prog}
                     </p>
@@ -250,12 +357,12 @@ export default function Events({ onRegisterEvent, registeredEventIds }: EventsPr
 
                       {/* QR Code */}
                       <div className="p-2.5 bg-white rounded-lg mb-4">
-                        <img
-                          src={activeEvent.imageUrl}
-                          alt="Ticket QR Code"
-                          className="w-32 h-32"
-                          referrerPolicy="no-referrer"
-                        />
+                       <img
+  src={ticketDetails.qrUrl}
+  alt="Ticket QR Code"
+  className="w-32 h-32"
+  referrerPolicy="no-referrer"
+/>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 w-full text-left font-mono text-[10px] text-neutral-gray mb-2">
