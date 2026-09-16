@@ -291,18 +291,23 @@ if (!activeEvent) {
               <div className="pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
 
                 {registeredEventIds.includes(activeEvent.id) ? (
-                  <div className="px-5 py-3 rounded-lg bg-gold-rich/10 border border-gold-rich/30 text-gold-bright font-medium flex items-center justify-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-gold-bright" />
-                    Inscrit avec succès !
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowFormModal(true)}
-                    className="w-full sm:w-auto px-6 py-3 rounded-lg bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold uppercase text-xs tracking-wider hover:shadow-lg transition-all"
-                  >
-                    Obtenir mon Ticket Gratuit
-                  </button>
-                )}
+  <button
+    type="button"
+    disabled
+    className="w-full sm:w-auto px-6 py-3 rounded-lg bg-gold-rich/10 border border-gold-rich/30 text-gold-bright font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 cursor-default"
+  >
+    <ShieldCheck className="w-5 h-5" />
+    Déjà inscrit
+  </button>
+) : (
+  <button
+    type="button"
+    onClick={() => setShowFormModal(true)}
+    className="w-full sm:w-auto px-6 py-3 rounded-lg bg-gradient-to-r from-gold-rich to-gold-bright text-deep-green font-bold uppercase text-xs tracking-wider hover:shadow-lg transition-all"
+  >
+    Obtenir mon Ticket Gratuit
+  </button>
+)}
               </div>
 
             </div>
@@ -358,7 +363,7 @@ if (!activeEvent) {
                       {/* QR Code */}
                       <div className="p-2.5 bg-white rounded-lg mb-4">
                        <img
-  src={ticketDetails.qrUrl}
+  src="/assets/qr.png"
   alt="Ticket QR Code"
   className="w-32 h-32"
   referrerPolicy="no-referrer"
@@ -379,10 +384,7 @@ if (!activeEvent) {
                           <span className="block text-[8px] uppercase tracking-wider text-gold-rich">Bénéficiaire</span>
                           <span className="text-pristine-white text-xs block truncate">{ticketDetails.name}</span>
                         </div>
-                        <div>
-                          <span className="block text-[8px] uppercase tracking-wider text-gold-rich">N° Siège</span>
-                          <span className="text-gold-bright text-xs font-bold font-mono">{ticketDetails.seatNumber}</span>
-                        </div>
+                       
                       </div>
 
                       <div className="w-full pt-4 border-t border-gold-rich/10 text-center font-mono text-[9px] text-neutral-gray">
@@ -461,18 +463,7 @@ if (!activeEvent) {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-mono uppercase text-neutral-gray mb-1.5">Nombre de places réservées</label>
-                        <select
-                          value={numTickets}
-                          onChange={e => setNumTickets(Number(e.target.value))}
-                          className="w-full px-4 py-2.5 rounded bg-primary-green/20 border border-gold-rich/15 focus:border-gold-rich/50 text-pristine-white text-sm outline-none"
-                        >
-                          <option value="1">1 Place (Siège Personnel)</option>
-                          <option value="2">2 Places (Duo Fraternel)</option>
-                          <option value="3">3 Places (Famille de base)</option>
-                        </select>
-                      </div>
+                     
                     </div>
 
                     <div className="flex gap-4 pt-2">
